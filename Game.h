@@ -24,6 +24,14 @@ private:
 	void LoadShaders();
 	void CreateGeometry();
 
+	// Helper methods for ImGui
+	void UINewFrame(float deltaTime);
+	void BuildUI();
+	bool showUIDemoWindow; // track state of demo window
+
+	// game background color
+	float bgColor[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
+
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
 	//     Component Object Model, which DirectX objects do

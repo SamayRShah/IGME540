@@ -5,6 +5,11 @@
 #include "PathHelpers.h"
 #include "Window.h"
 
+// ImGui includes
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
+
 #include <DirectXMath.h>
 
 // Needed for a helper function to load pre-compiled shader files
@@ -20,6 +25,16 @@ using namespace DirectX;
 // --------------------------------------------------------
 void Game::Initialize()
 {
+	// Initialize ImGui itself & platform/renderer backends
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplWin32_Init(Window::Handle());
+	ImGui_ImplDX11_Init(Graphics::Device.Get(), Graphics::Context.Get());
+	// Pick a style (uncomment one of these 3)
+	//ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+	ImGui::StyleColorsClassic();
+
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
@@ -58,7 +73,10 @@ void Game::Initialize()
 // --------------------------------------------------------
 Game::~Game()
 {
-
+	// ImGui clean up
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 
@@ -240,6 +258,10 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	// setup new frame for ImGui and build the ui
+	UINewFrame(deltaTime);
+	BuildUI();
+
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
@@ -256,8 +278,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	color);
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	bgColor);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
@@ -287,6 +308,10 @@ void Game::Draw(float deltaTime, float totalTime)
 			0);    // Offset to add to each index when looking up vertices
 	}
 
+	// prepare ImGui buffers
+	ImGui::Render(); // Turns this frame’s UI into renderable triangles
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // Draws it to the screen
+
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
 	// - At the very end of the frame (after drawing *everything*)
@@ -305,5 +330,83 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 }
 
+// --------------------------------------------------------
+// Prepare new frame for the UI
+// --------------------------------------------------------
+void Game::UINewFrame(float deltaTime) {
+
+	// Feed fresh data to ImGui
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = deltaTime;
+	io.DisplaySize.x = (float)Window::Width();
+	io.DisplaySize.y = (float)Window::Height();
+
+	// Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	// Determine new input capture
+	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
+	Input::SetMouseCapture(io.WantCaptureMouse);
+}
+
+// --------------------------------------------------------
+// Build UI for the current frame
+// --------------------------------------------------------
+void Game::BuildUI() {
+	if (showUIDemoWindow) {
+		ImGui::ShowDemoWindow();
+	}
+
+	// Open/create custom window
+	ImGui::Begin("Inspector"); 
+	{
+		// make tree node and make it open by default
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if(ImGui::TreeNode("App Details")) 
+		{
+			// show frame rate and window size
+			ImGui::Text("Frame rate: %f fps", ImGui::GetIO().Framerate);
+			ImGui::Text("Window Client Size: %dx%d", Window::Width(), Window::Height());
+
+			// 'close' tree node
+			ImGui::TreePop();
+		}
+
+		// editor for background color
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("World Properties"))
+		{
+			ImGui::ColorEdit4("Bg Color", bgColor);
+			ImGui::TreePop();
+		}
+
+		// change ui color style and hide / show demo window
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("UI Options"))
+		{
+			ImGui::Text("UI Style:"); 
+			{
+				if (ImGui::Button("Classic"))
+					ImGui::StyleColorsClassic();
+				ImGui::SameLine();
+				if (ImGui::Button("Light"))
+					ImGui::StyleColorsLight();
+				ImGui::SameLine();
+				if (ImGui::Button("Dark"))
+					ImGui::StyleColorsDark();
+			}
+
+			if (ImGui::Button(showUIDemoWindow ? "Hide ImGui Demo Window" : "Show ImGui Demo Window"))
+				showUIDemoWindow = !showUIDemoWindow;
+			
+			ImGui::TreePop();
+		}
+	}
+	// close window
+	ImGui::End();
+
+}
 
 
