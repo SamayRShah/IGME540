@@ -65,6 +65,24 @@ void Game::Initialize()
 		//    these calls will need to happen multiple times per frame
 		Graphics::Context->VSSetShader(vertexShader.Get(), 0, 0);
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
+
+		// create constant buffer
+		unsigned int bufferSize = sizeof(VertexShaderData);
+		bufferSize = (bufferSize + 15) / 16 * 16;
+
+		// create a constant buffer
+		D3D11_BUFFER_DESC cbDesc{};
+		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cbDesc.ByteWidth = 32;
+		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cbDesc.MiscFlags = 0;
+		cbDesc.StructureByteStride = 0;
+
+		Graphics::Device->CreateBuffer(&cbDesc, 0, constantBuffer.GetAddressOf());
+
+		// Bind the buffer
+		Graphics::Context->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 	}
 }
 
@@ -267,6 +285,27 @@ void Game::Draw(float deltaTime, float totalTime)
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	bgColor);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
+
+	// collect data locally
+	VertexShaderData dataToCopy{};
+	dataToCopy.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+	dataToCopy.offset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+	// map the buffer
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	Graphics::Context->Map(
+		constantBuffer.Get(),
+		0,
+		D3D11_MAP_WRITE_DISCARD,
+		0,
+		&mapped
+	);
+
+	// copy data to gpu
+	memcpy(mapped.pData, &dataToCopy, sizeof(VertexShaderData));
+
+	// unmao data when done
+	Graphics::Context->Unmap(constantBuffer.Get(), 0);
 
 	// draw meshes
 	for (size_t i = 0; i < lMeshes.size(); i++) {

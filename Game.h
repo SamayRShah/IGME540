@@ -6,6 +6,13 @@
 #include <wrl/client.h>
 #include <vector>
 #include <memory>
+#include <DirectXMath.h>
+
+struct VertexShaderData 
+{
+	DirectX::XMFLOAT4 colorTint;
+	DirectX::XMFLOAT3 offset;
+};
 
 class Game
 {
@@ -52,5 +59,8 @@ private:
 
 	// vector to hold meshes
 	std::vector<std::shared_ptr<Mesh>> lMeshes;
+
+	// constant buffer
+	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 };
 
