@@ -73,7 +73,7 @@ void Game::Initialize()
 		// create a constant buffer
 		D3D11_BUFFER_DESC cbDesc{};
 		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbDesc.ByteWidth = 32;
+		cbDesc.ByteWidth = bufferSize;
 		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 		cbDesc.MiscFlags = 0;
@@ -286,10 +286,18 @@ void Game::Draw(float deltaTime, float totalTime)
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-	// collect data locally
+	// multiple matrices
+	XMMATRIX trMat = XMMatrixTranslation((float)sin(totalTime), 0, 0);
+	XMMATRIX rotZMat = XMMatrixRotationZ(totalTime);
+
+	XMFLOAT4X4 rotZ;
+	XMFLOAT4X4 tr;
+	XMStoreFloat4x4(&rotZ, rotZMat);
+	XMStoreFloat4x4(&tr, trMat);
+
 	VertexShaderData dataToCopy{};
 	dataToCopy.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	dataToCopy.offset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	dataToCopy.transform = rotZ;
 
 	// map the buffer
 	D3D11_MAPPED_SUBRESOURCE mapped;
