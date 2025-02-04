@@ -2,12 +2,12 @@
 #include "Graphics.h"
 
 // constructor
-Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, unsigned int* ptrIndeces, size_t nNumIndeces) {
+Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, UINT* ptrIndeces, size_t nNumIndeces) {
 	
 	// store num vertices, indeces, and name
 	this->name = name;
-	this->nNumVertices = nNumVertices;
-	this->nNumIndeces = nNumIndeces;
+	this->nNumVertices = (UINT)nNumVertices;
+	this->nNumIndeces = (UINT)nNumIndeces;
 
 	// Create a VERTEX BUFFER
 	// - This holds the vertex data of triangles for a single object
@@ -19,7 +19,7 @@ Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, unsigned 
 		//  - After the buffer is created, this description variable is unnecessary
 		D3D11_BUFFER_DESC vbd = {};
 		vbd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		vbd.ByteWidth = sizeof(Vertex) * nNumVertices; // 3 = number of vertices in the buffer
+		vbd.ByteWidth = sizeof(Vertex) * (UINT)nNumVertices; // 3 = number of vertices in the buffer
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // Tells Direct3D this is a vertex buffer
 		vbd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		vbd.MiscFlags = 0;
@@ -47,7 +47,7 @@ Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, unsigned 
 		//  - Bind Flag (used as an index buffer instead of a vertex buffer) 
 		D3D11_BUFFER_DESC ibd = {};
 		ibd.Usage = D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		ibd.ByteWidth = sizeof(unsigned int) * nNumIndeces;	// 3 = number of indices in the buffer
+		ibd.ByteWidth = sizeof(UINT) * (UINT)nNumIndeces;	// 3 = number of indices in the buffer
 		ibd.BindFlags = D3D11_BIND_INDEX_BUFFER; // Tells Direct3D this is an index buffer
 		ibd.CPUAccessFlags = 0;	// Note: We cannot access the data from C++ (this is good)
 		ibd.MiscFlags = 0;
@@ -96,7 +96,7 @@ void Mesh::Draw() {
 // getter functions
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetVertexBuffer() { return this->vertexBuffer; }
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetIndexBuffer() { return this->indexBuffer; }
-size_t Mesh::GetIndexCount() { return this->nNumIndeces; }
-size_t Mesh::GetVertexCount() { return this->nNumVertices; }
+UINT Mesh::GetIndexCount() { return this->nNumIndeces; }
+UINT Mesh::GetVertexCount() { return this->nNumVertices; }
 const char* Mesh::GetName() { return this->name; }
-const unsigned int Mesh::GetTriCount() { return this->GetIndexCount() / 3; }
+const UINT Mesh::GetTriCount() { return this->GetIndexCount() / 3; }

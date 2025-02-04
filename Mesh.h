@@ -9,7 +9,7 @@ class Mesh
 public:
 
 	// constructor
-	Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, unsigned int* ptrIndeces, size_t nNumIndeces);
+	Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, UINT* ptrIndeces, size_t nNumIndeces);
 	~Mesh();
 
 	// public methods
@@ -18,10 +18,10 @@ public:
 	// member variable return methods
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
-	size_t GetIndexCount();
-	size_t GetVertexCount();
+	UINT GetIndexCount();
+	UINT GetVertexCount();
 	const char* GetName();
-	const unsigned int GetTriCount();
+	const UINT GetTriCount();
 private:
 
 	const char* name;
@@ -31,7 +31,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
 
 	// integers for num indeces and vertices
-	size_t nNumIndeces;
-	size_t nNumVertices;
+	UINT nNumIndeces;
+	UINT nNumVertices;
 };
 
