@@ -18,8 +18,8 @@ public:
 	// member variable return methods
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
-	UINT GetIndexCount();
-	UINT GetVertexCount();
+	const UINT GetIndexCount();
+	const UINT GetVertexCount();
 	const char* GetName();
 	const UINT GetTriCount();
 private:

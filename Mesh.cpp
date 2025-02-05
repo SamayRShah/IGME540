@@ -96,7 +96,7 @@ void Mesh::Draw() {
 // getter functions
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetVertexBuffer() { return this->vertexBuffer; }
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetIndexBuffer() { return this->indexBuffer; }
-UINT Mesh::GetIndexCount() { return this->nNumIndeces; }
-UINT Mesh::GetVertexCount() { return this->nNumVertices; }
+const UINT Mesh::GetIndexCount() { return this->nNumIndeces; }
+const UINT Mesh::GetVertexCount() { return this->nNumVertices; }
 const char* Mesh::GetName() { return this->name; }
 const UINT Mesh::GetTriCount() { return this->GetIndexCount() / 3; }
