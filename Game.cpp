@@ -67,7 +67,7 @@ void Game::Initialize()
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
 
 		// create constant buffer
-		unsigned int bufferSize = sizeof(VertexShaderData);
+		UINT bufferSize = sizeof(VertexShaderExternalData);
 		bufferSize = (bufferSize + 15) / 16 * 16;
 
 		// create a constant buffer
@@ -210,34 +210,33 @@ void Game::CreateGeometry()
 	// - Indices are technically not required if the vertices are in the buffer 
 	//    in the correct order and each one will be used exactly once
 	// - But just to see how it's done...
-	unsigned int indices[] = { 0, 1, 2 };
+	UINT indices[] = { 0, 1, 2 };
 
 	Vertex vertices2[] =
 	{
-		{ XMFLOAT3(+0.25f, +0.8f, +0.0f), red },
-		{ XMFLOAT3(+0.75f, +0.8f, +0.0f), blue },
-		{ XMFLOAT3(+0.75f, +0.5f, +0.0f), blue },
-		{ XMFLOAT3(+0.25f, +0.5f, +0.0f), red },
+		{ XMFLOAT3(0.0f, 0.0f, 0.0f), red },
+		{ XMFLOAT3(0.5f, 0.0f, 0.0f), blue },
+		{ XMFLOAT3(0.5f, -0.3f, 0.0f), blue },
+		{ XMFLOAT3(0.0f, -0.3f, 0.0f), red },
 	};
-	unsigned int indices2[] = { 0, 1, 2, 2, 3, 0 };
+	UINT indices2[] = { 0, 1, 2, 2, 3, 0 };
 
 	Vertex vertices3[] =
 	{
-		{ XMFLOAT3(+0.6f, +0.4f, +0.0f), gray },
-		{ XMFLOAT3(+1.0f, +0.2f, +0.0f), gray },
-		{ XMFLOAT3(+0.65f, +0.2f, +0.0f), white },
-		{ XMFLOAT3(+0.75f, +0.1f, +0.0f), white },
-		{ XMFLOAT3(+0.75f, +0.0f, +0.0f), white },	
-		{ XMFLOAT3(+0.65f, -0.1f, +0.0f), white },
-		{ XMFLOAT3(+1.0f, -0.1f, +0.0f), gray },
-		{ XMFLOAT3(+0.6f, -0.3f, +0.0f), gray },
-		{ XMFLOAT3(+0.55f, +0.0f, +0.0f), white },
-		{ XMFLOAT3(+0.55f, +0.1f, +0.0f), white }
+		{ XMFLOAT3(-0.05f, 0.35f, 0.0f), gray },
+		{ XMFLOAT3(0.35f, 0.15f, 0.0f), gray },
+		{ XMFLOAT3(0.0f, 0.15f, 0.0f), white },
+		{ XMFLOAT3(0.10f, 0.05f, 0.0f), white },
+		{ XMFLOAT3(0.10f, -0.05f, 0.0f), white },
+		{ XMFLOAT3(0.0f, -0.15f, 0.0f), white },
+		{ XMFLOAT3(0.35f, -0.15f, 0.0f), gray },
+		{ XMFLOAT3(-0.05f, -0.35f, 0.0f), gray },
+		{ XMFLOAT3(-0.10f, -0.05f, 0.0f), white },
+		{ XMFLOAT3(-0.10f, 0.05f, 0.0f), white }
 	};
+	UINT indices3[] = { 0, 1, 2, 3, 4, 2, 3, 4, 5, 6, 7, 5, 5, 8, 9, 2, 8, 9 };
 
-	unsigned int indices3[] = { 0, 1, 2, 3, 4, 2, 3, 4, 5, 6, 7, 5, 5, 8, 9, 2, 8, 9 };
-
-
+	// add meshes to lists
 	std::shared_ptr<Mesh> m1 = std::make_shared<Mesh>("Triangle", vertices, 3, indices, 3);
 	std::shared_ptr<Mesh> m2 = std::make_shared<Mesh>("Rectangle", vertices2, 4, indices2, 6);
 	std::shared_ptr<Mesh> m3 = std::make_shared<Mesh>("space ship", vertices3, 10, indices3, 18);
@@ -245,6 +244,26 @@ void Game::CreateGeometry()
 	lMeshes.push_back(m1);
 	lMeshes.push_back(m2);
 	lMeshes.push_back(m3);
+
+	// transform and color data
+	VertexShaderExternalData meshData{};
+	meshData.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+	meshData.offset = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	std::shared_ptr<VertexShaderExternalData> mD1 = std::make_shared<VertexShaderExternalData>(meshData);
+
+	VertexShaderExternalData meshData2{};
+	meshData2.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+	meshData2.offset = XMFLOAT3(0.25f, 0.8f, 0.0f);
+	std::shared_ptr<VertexShaderExternalData> mD2 = std::make_shared<VertexShaderExternalData>(meshData2);
+
+	VertexShaderExternalData meshData3{};
+	meshData3.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+	meshData3.offset = XMFLOAT3(0.55f, 0.0f, 0.0f);
+	std::shared_ptr<VertexShaderExternalData> mD3 = std::make_shared<VertexShaderExternalData>(meshData3);
+
+	lMeshesData.push_back(mD1);
+	lMeshesData.push_back(mD2);
+	lMeshesData.push_back(mD3);
 }
 
 
@@ -286,37 +305,23 @@ void Game::Draw(float deltaTime, float totalTime)
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-	// multiple matrices
-	XMMATRIX trMat = XMMatrixTranslation((float)sin(totalTime), 0, 0);
-	XMMATRIX rotZMat = XMMatrixRotationZ(totalTime);
-
-	XMFLOAT4X4 rotZ;
-	XMFLOAT4X4 tr;
-	XMStoreFloat4x4(&rotZ, rotZMat);
-	XMStoreFloat4x4(&tr, trMat);
-
-	VertexShaderData dataToCopy{};
-	dataToCopy.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	dataToCopy.transform = rotZ;
-
-	// map the buffer
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	Graphics::Context->Map(
-		constantBuffer.Get(),
-		0,
-		D3D11_MAP_WRITE_DISCARD,
-		0,
-		&mapped
-	);
-
-	// copy data to gpu
-	memcpy(mapped.pData, &dataToCopy, sizeof(VertexShaderData));
-
-	// unmao data when done
-	Graphics::Context->Unmap(constantBuffer.Get(), 0);
-
 	// draw meshes
 	for (size_t i = 0; i < lMeshes.size(); i++) {
+		// map the data to the buffer
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		Graphics::Context->Map(
+			constantBuffer.Get(),
+			0,
+			D3D11_MAP_WRITE_DISCARD,
+			0,
+			&mapped
+		);
+
+		// copy data to gpu
+		memcpy(mapped.pData, lMeshesData[i].get(), sizeof(VertexShaderExternalData));
+
+		// unmp data when done
+		Graphics::Context->Unmap(constantBuffer.Get(), 0);
 		lMeshes[i].get()->Draw();
 	}
 
@@ -421,15 +426,19 @@ void Game::BuildUI() {
 		if (ImGui::TreeNode("Meshes")) {
 			for (size_t i = 0; i < lMeshes.size(); i++) {
 	
-				Mesh& target = *lMeshes[i];
+				Mesh& target = *lMeshes[i].get();
+				VertexShaderExternalData& targetData = *lMeshesData[i].get();
 
-				ImGui::PushID(static_cast<unsigned int>(i));
-				if (ImGui::TreeNode("Mesh: ", target.GetName())) {
+				ImGui::PushID(static_cast<UINT>(i));
+				if (ImGui::TreeNode(target.GetName())) {
 					ImGui::Text("triangles: %d", target.GetTriCount());
 					ImGui::Text("vertices: %d", target.GetVertexCount());
 					ImGui::Text("indeces: %d", target.GetIndexCount());
 					ImGui::TreePop();
+					
 				}
+				ImGui::ColorEdit4("Color tint", reinterpret_cast<float*>(&targetData.colorTint));
+				ImGui::DragFloat3("Offset", reinterpret_cast<float*>(&targetData.offset), 0.1f, -1.0f, 1.0f, "%.3f");
 				ImGui::PopID();
 			}
 			ImGui::TreePop();

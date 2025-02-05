@@ -1,19 +1,13 @@
 #pragma once
 
 #include "Mesh.h"
+#include "BufferStructs.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <vector>
 #include <memory>
 #include <DirectXMath.h>
-
-struct VertexShaderData 
-{
-	DirectX::XMFLOAT4 colorTint;
-	DirectX::XMFLOAT4X4 transform;
-};
-
 class Game
 {
 public:
@@ -48,17 +42,14 @@ private:
 	//     Component Object Model, which DirectX objects do
 	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
 
-	// Buffers to hold actual geometry data
-	//Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	//Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-
 	// Shaders and shader-related constructs
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
 
-	// vector to hold meshes
+	// vectors to hold meshes and their color / transform data and Vertex copy data
 	std::vector<std::shared_ptr<Mesh>> lMeshes;
+	std::vector<std::shared_ptr<VertexShaderExternalData>> lMeshesData;
 
 	// constant buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
