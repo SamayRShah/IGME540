@@ -8,6 +8,7 @@ Transform::Transform() :
     scale(1, 1, 1),
     dirty(false)
 {
+    XMStoreFloat4x4(&worldMatrix, XMMatrixIdentity());
 }
 
 void Transform::SetPosition(float x, float y, float z)
@@ -44,9 +45,9 @@ void Transform::MoveRelative(float x, float y, float z)
     XMStoreFloat3(&position, XMLoadFloat3(&position) + XMVectorSet(x, y, z, 0.0f));
 }
 
-void Transform::Rotate(float x, float y, float z)
+void Transform::Rotate(float p, float y, float r)
 {
-    XMStoreFloat3(&pitchYawRoll, XMLoadFloat3(&pitchYawRoll) + XMVectorSet(x, y, z, 0.0f));
+    XMStoreFloat3(&pitchYawRoll, XMLoadFloat3(&pitchYawRoll) + XMVectorSet(p, y, r, 0.0f));
 }
 
 void Transform::Scale(float x, float y, float z)

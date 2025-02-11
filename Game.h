@@ -2,6 +2,7 @@
 
 #include "Mesh.h"
 #include "BufferStructs.h"
+#include "GameEntity.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -49,7 +50,7 @@ private:
 
 	// vectors to hold meshes and their color / transform data and Vertex copy data
 	std::vector<std::shared_ptr<Mesh>> lMeshes;
-	std::vector<std::shared_ptr<VertexShaderExternalData>> lMeshesData;
+	std::vector<std::shared_ptr<GameEntity>> lEntities;
 
 	// constant buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;

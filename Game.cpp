@@ -246,24 +246,16 @@ void Game::CreateGeometry()
 	lMeshes.push_back(m3);
 
 	// transform and color data
-	VertexShaderExternalData meshData{};
-	meshData.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	meshData.offset = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	std::shared_ptr<VertexShaderExternalData> mD1 = std::make_shared<VertexShaderExternalData>(meshData);
+	std::shared_ptr<GameEntity> e1 = std::make_shared<GameEntity>(m1);
+	lEntities.push_back(e1);
 
-	VertexShaderExternalData meshData2{};
-	meshData2.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	meshData2.offset = XMFLOAT3(0.25f, 0.8f, 0.0f);
-	std::shared_ptr<VertexShaderExternalData> mD2 = std::make_shared<VertexShaderExternalData>(meshData2);
+	std::shared_ptr<GameEntity> e2 = std::make_shared<GameEntity>(m2);
+	e2->GetTransform()->MoveAbsolute(0.25f, 0.8f, 0.0f);
+	lEntities.push_back(e2);
 
-	VertexShaderExternalData meshData3{};
-	meshData3.colorTint = XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	meshData3.offset = XMFLOAT3(0.55f, 0.0f, 0.0f);
-	std::shared_ptr<VertexShaderExternalData> mD3 = std::make_shared<VertexShaderExternalData>(meshData3);
-
-	lMeshesData.push_back(mD1);
-	lMeshesData.push_back(mD2);
-	lMeshesData.push_back(mD3);
+	std::shared_ptr<GameEntity> e3 = std::make_shared<GameEntity>(m3);
+	e2->GetTransform()->MoveAbsolute(0.55f, 0.0f, 0.0f);
+	lEntities.push_back(e3);
 }
 
 
@@ -306,7 +298,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 
 	// draw meshes
-	for (size_t i = 0; i < lMeshes.size(); i++) {
+	for (size_t i = 0; i < lEntities.size(); i++) {
 		// map the data to the buffer
 		D3D11_MAPPED_SUBRESOURCE mapped;
 		Graphics::Context->Map(
@@ -317,12 +309,16 @@ void Game::Draw(float deltaTime, float totalTime)
 			&mapped
 		);
 
+		VertexShaderExternalData mData;
+		mData.colorTint = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		mData.worldMatrix = lEntities[i]->GetTransform()->GetWorldMatrix();
+
 		// copy data to gpu
-		memcpy(mapped.pData, lMeshesData[i].get(), sizeof(VertexShaderExternalData));
+		memcpy(mapped.pData, &mData, sizeof(VertexShaderExternalData));
 
 		// unmp data when done
 		Graphics::Context->Unmap(constantBuffer.Get(), 0);
-		lMeshes[i].get()->Draw();
+		lEntities[i].get()->GetMesh()->Draw();
 	}
 
 	// prepare ImGui buffers
@@ -427,7 +423,7 @@ void Game::BuildUI() {
 			for (size_t i = 0; i < lMeshes.size(); i++) {
 	
 				Mesh& target = *lMeshes[i].get();
-				VertexShaderExternalData& targetData = *lMeshesData[i].get();
+				//VertexShaderExternalData& targetData = *lMeshesData[i].get();
 
 				ImGui::PushID(static_cast<UINT>(i));
 				if (ImGui::TreeNode(target.GetName())) {
@@ -437,8 +433,8 @@ void Game::BuildUI() {
 					ImGui::TreePop();
 					
 				}
-				ImGui::ColorEdit4("Color tint", reinterpret_cast<float*>(&targetData.colorTint));
-				ImGui::DragFloat3("Offset", reinterpret_cast<float*>(&targetData.offset), 0.1f, -1.0f, 1.0f, "%.3f");
+				//ImGui::ColorEdit4("Color tint", reinterpret_cast<float*>(&targetData.colorTint));
+				//ImGui::DragFloat3("Offset", reinterpret_cast<float*>(&targetData.offset), 0.1f, -1.0f, 1.0f, "%.3f");
 				ImGui::PopID();
 			}
 			ImGui::TreePop();
