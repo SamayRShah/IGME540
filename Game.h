@@ -48,8 +48,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
 
-	// vectors to hold meshes and their color / transform data and Vertex copy data
-	std::vector<std::shared_ptr<Mesh>> lMeshes;
+	// vector to hold GameEntities
 	std::vector<std::shared_ptr<GameEntity>> lEntities;
 
 	// constant buffer

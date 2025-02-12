@@ -15,6 +15,7 @@
 
 #include <DirectXMath.h>
 #include <memory>
+#include <format>
 
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
@@ -35,9 +36,9 @@ void Game::Initialize()
 	ImGui_ImplWin32_Init(Window::Handle());
 	ImGui_ImplDX11_Init(Graphics::Device.Get(), Graphics::Context.Get());
 	// Pick a style (uncomment one of these 3)
-	//ImGui::StyleColorsDark();
+	ImGui::StyleColorsDark();
 	//ImGui::StyleColorsLight();
-	ImGui::StyleColorsClassic();
+	//ImGui::StyleColorsClassic();
 
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
@@ -241,21 +242,30 @@ void Game::CreateGeometry()
 	std::shared_ptr<Mesh> m2 = std::make_shared<Mesh>("Rectangle", vertices2, 4, indices2, 6);
 	std::shared_ptr<Mesh> m3 = std::make_shared<Mesh>("space ship", vertices3, 10, indices3, 18);
 
-	lMeshes.push_back(m1);
-	lMeshes.push_back(m2);
-	lMeshes.push_back(m3);
-
 	// transform and color data
-	std::shared_ptr<GameEntity> e1 = std::make_shared<GameEntity>(m1);
+	std::shared_ptr<GameEntity> e1 = std::make_shared<GameEntity>("triangle 1", m1);
+	e1->GetTransform()->Scale(0.5f, 0.5f, 1.0f);
 	lEntities.push_back(e1);
 
-	std::shared_ptr<GameEntity> e2 = std::make_shared<GameEntity>(m2);
-	e2->GetTransform()->MoveAbsolute(0.25f, 0.8f, 0.0f);
+	std::shared_ptr<GameEntity> e2 = std::make_shared<GameEntity>("triangle 2", m1);
+	e2->GetTransform()->SetPosition(-0.5f, 0.5f, 0.0f);
 	lEntities.push_back(e2);
 
-	std::shared_ptr<GameEntity> e3 = std::make_shared<GameEntity>(m3);
-	e2->GetTransform()->MoveAbsolute(0.55f, 0.0f, 0.0f);
+	std::shared_ptr<GameEntity> e3 = std::make_shared<GameEntity>("Rectangle", m2);
+	e3->GetTransform()->SetPosition(0.25f, 0.8f, 0.0f);
+	e3->colorTint = XMFLOAT4(1, 0, 1, 1);
 	lEntities.push_back(e3);
+
+	std::shared_ptr<GameEntity> e4 = std::make_shared<GameEntity>("Space Ship", m3);
+	e4->GetTransform()->SetPosition(0.55f, 0.0f, 0.0f);
+	e4->colorTint = XMFLOAT4(1, 0, 1, 1);
+	lEntities.push_back(e4);
+
+	std::shared_ptr<GameEntity> e5 = std::make_shared<GameEntity>("Space Ship 2", m3);
+	e5->GetTransform()->SetPosition(0.55f, -0.7f, 0.0f);
+	e5->GetTransform()->SetScale(0.5f, 0.5f, 1.0f);
+	e5->colorTint = XMFLOAT4(0, 0, 1, 1);
+	lEntities.push_back(e5);
 }
 
 
@@ -299,26 +309,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	// draw meshes
 	for (size_t i = 0; i < lEntities.size(); i++) {
-		// map the data to the buffer
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		Graphics::Context->Map(
-			constantBuffer.Get(),
-			0,
-			D3D11_MAP_WRITE_DISCARD,
-			0,
-			&mapped
-		);
-
-		VertexShaderExternalData mData;
-		mData.colorTint = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		mData.worldMatrix = lEntities[i]->GetTransform()->GetWorldMatrix();
-
-		// copy data to gpu
-		memcpy(mapped.pData, &mData, sizeof(VertexShaderExternalData));
-
-		// unmp data when done
-		Graphics::Context->Unmap(constantBuffer.Get(), 0);
-		lEntities[i].get()->GetMesh()->Draw();
+		lEntities[i]->Draw(constantBuffer);
 	}
 
 	// prepare ImGui buffers
@@ -373,11 +364,11 @@ void Game::BuildUI() {
 	}
 
 	// Open/create custom window
-	ImGui::Begin("Inspector"); 
+	ImGui::Begin("Inspector");
 	{
 		// make tree node and make it open by default
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-		if(ImGui::TreeNode("App Details")) 
+		if (ImGui::TreeNode("App Details"))
 		{
 			// show frame rate and window size
 			ImGui::Text("Frame rate: %f fps", ImGui::GetIO().Framerate);
@@ -399,7 +390,7 @@ void Game::BuildUI() {
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("UI Options"))
 		{
-			ImGui::Text("UI Style:"); 
+			ImGui::Text("UI Style:");
 			{
 				if (ImGui::Button("Classic"))
 					ImGui::StyleColorsClassic();
@@ -413,28 +404,48 @@ void Game::BuildUI() {
 
 			if (ImGui::Button(showUIDemoWindow ? "Hide ImGui Demo Window" : "Show ImGui Demo Window"))
 				showUIDemoWindow = !showUIDemoWindow;
-			
+
 			ImGui::TreePop();
 		}
 
 		// mesh ui
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-		if (ImGui::TreeNode("Meshes")) {
-			for (size_t i = 0; i < lMeshes.size(); i++) {
-	
-				Mesh& target = *lMeshes[i].get();
-				//VertexShaderExternalData& targetData = *lMeshesData[i].get();
+		if (ImGui::TreeNode("Entities")) {
+			for (size_t i = 0; i < lEntities.size(); i++) {
+
+				// get address for entity, mesh, and transform
+				GameEntity targetEntity = *lEntities[i].get();
+				Mesh& targetMesh = *targetEntity.GetMesh();
+				Transform& targetTransform = *targetEntity.GetTransform();
 
 				ImGui::PushID(static_cast<UINT>(i));
-				if (ImGui::TreeNode(target.GetName())) {
-					ImGui::Text("triangles: %d", target.GetTriCount());
-					ImGui::Text("vertices: %d", target.GetVertexCount());
-					ImGui::Text("indeces: %d", target.GetIndexCount());
+				if (ImGui::TreeNode(std::format("Entity: {}", targetEntity.GetName()).c_str())) {
+					if (ImGui::TreeNode(std::format("Mesh: {}", targetMesh.GetName()).c_str())) {
+						ImGui::Text("triangles: %d", targetMesh.GetTriCount());
+						ImGui::Text("vertices: %d", targetMesh.GetVertexCount());
+						ImGui::Text("indeces: %d", targetMesh.GetIndexCount());
+						ImGui::TreePop();
+					}
 					ImGui::TreePop();
-					
+
+					// color tint
+					ImGui::ColorEdit4("color tint", reinterpret_cast<float*>(&targetEntity.colorTint));
+
+					// position
+					XMFLOAT3 pos = targetTransform.GetPosition();
+					ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
+					targetTransform.SetPosition(pos.x, pos.y, pos.z);
+
+					// rotation
+					XMFLOAT3 rotation = targetTransform.GetRotation();
+					ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
+					targetTransform.SetRotation(rotation.x, rotation.y, rotation.z);
+
+					// scale
+					XMFLOAT3 scale = targetTransform.GetScale();
+					ImGui::DragFloat3("Scale", reinterpret_cast<float*>(&scale), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
+					targetTransform.SetScale(scale.x, scale.y, scale.z);
 				}
-				//ImGui::ColorEdit4("Color tint", reinterpret_cast<float*>(&targetData.colorTint));
-				//ImGui::DragFloat3("Offset", reinterpret_cast<float*>(&targetData.offset), 0.1f, -1.0f, 1.0f, "%.3f");
 				ImGui::PopID();
 			}
 			ImGui::TreePop();

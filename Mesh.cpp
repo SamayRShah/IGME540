@@ -2,12 +2,13 @@
 #include "Graphics.h"
 
 // constructor
-Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, UINT* ptrIndeces, size_t nNumIndeces) {
+Mesh::Mesh(const char* name, Vertex* ptrVertices, const size_t& nNumVertices, UINT* ptrIndeces, const size_t& nNumIndeces) {
 	
 	// store num vertices, indeces, and name
 	this->name = name;
 	this->nNumVertices = (UINT)nNumVertices;
 	this->nNumIndeces = (UINT)nNumIndeces;
+	this->nNumTris = (UINT)(nNumIndeces / 3);
 
 	// Create a VERTEX BUFFER
 	// - This holds the vertex data of triangles for a single object
@@ -62,6 +63,8 @@ Mesh::Mesh(const char* name, Vertex* ptrVertices, size_t nNumVertices, UINT* ptr
 		Graphics::Device->CreateBuffer(&ibd, &initialIndexData, this->indexBuffer.GetAddressOf());
 	}
 }
+Mesh::Mesh(Vertex* ptrVertices, const size_t& nNumVertices, UINT* ptrIndeces, const size_t& nNumIndeces)
+	: Mesh("Mesh", std::move(ptrVertices), nNumIndeces, std::move(ptrIndeces), nNumIndeces) {}
 
 Mesh::~Mesh() {}
 
@@ -94,9 +97,9 @@ void Mesh::Draw() {
 }
 
 // getter functions
+const UINT Mesh::GetIndexCount() const { return this->nNumIndeces; }
+const UINT Mesh::GetVertexCount() const { return this->nNumVertices; }
+const UINT Mesh::GetTriCount() const { return this->nNumTris; }
+const char* Mesh::GetName() { return this->name; }
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetVertexBuffer() { return this->vertexBuffer; }
 Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetIndexBuffer() { return this->indexBuffer; }
-const UINT Mesh::GetIndexCount() { return this->nNumIndeces; }
-const UINT Mesh::GetVertexCount() { return this->nNumVertices; }
-const char* Mesh::GetName() { return this->name; }
-const UINT Mesh::GetTriCount() { return this->GetIndexCount() / 3; }
