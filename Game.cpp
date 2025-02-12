@@ -414,7 +414,7 @@ void Game::BuildUI() {
 			for (size_t i = 0; i < lEntities.size(); i++) {
 
 				// get address for entity, mesh, and transform
-				GameEntity targetEntity = *lEntities[i].get();
+				GameEntity& targetEntity = *lEntities[i].get();
 				Mesh& targetMesh = *targetEntity.GetMesh();
 				Transform& targetTransform = *targetEntity.GetTransform();
 
