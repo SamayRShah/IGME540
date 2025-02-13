@@ -7,6 +7,16 @@ class Transform
 public:
 	Transform();
 
+	// getters
+	const DirectX::XMFLOAT3 GetPosition() const;
+	const DirectX::XMFLOAT3 GetRotation() const;
+	const DirectX::XMFLOAT3 GetScale() const;
+	const DirectX::XMFLOAT3 GetUp();
+	const DirectX::XMFLOAT3 GetRight();
+	const DirectX::XMFLOAT3 GetForward();
+	const DirectX::XMFLOAT4X4 GetWorldMatrix();
+	const DirectX::XMFLOAT4X4 GetWorldInverseTransposeMatrix();
+
 	// setters with overloads
 	void SetPosition(float x, float y, float z);
 	void SetPosition(const DirectX::XMFLOAT3& pos);
@@ -24,14 +34,6 @@ public:
 	void Rotate(const DirectX::XMFLOAT3& rotation);
 	void Scale(float x, float y, float z);
 	void Scale(const DirectX::XMFLOAT3& scaleFactor);
-
-	// getters
-	const DirectX::XMFLOAT3 GetPosition() const;
-	const DirectX::XMFLOAT3 GetRotation() const;
-	const DirectX::XMFLOAT3 GetScale() const;
-	const DirectX::XMFLOAT4X4 GetWorldMatrix();
-	const DirectX::XMFLOAT4X4 GetWorldInverseTransposeMatrix();
-
 private:
 	// Transform data
 	DirectX::XMFLOAT3 position;

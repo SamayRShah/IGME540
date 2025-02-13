@@ -30,8 +30,20 @@ const DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() {
     UpdateMatrices();
     return mWorldInverseTranspose;
 }
+const DirectX::XMFLOAT3 Transform::GetUp() {
+    UpdateVectors();
+    return up;
+}
+const DirectX::XMFLOAT3 Transform::GetRight() {
+    UpdateVectors();
+    return right;
+}
+const DirectX::XMFLOAT3 Transform::GetForward() {
+    UpdateVectors();
+    return forward;
+}
 
-// set positions & overloads
+// setters
 void Transform::SetPosition(float x, float y, float z)
 {
     SetPosition(XMFLOAT3(x, y, z));
@@ -40,8 +52,6 @@ void Transform::SetPosition(const XMFLOAT3& pos) {
     this->position = pos;
     bMatricesDirty = true;
 }
-
-// set rotation & overloads
 void Transform::SetRotation(float p, float y, float r)
 {
     SetRotation(XMFLOAT3(p, y, r));  
@@ -51,8 +61,6 @@ void Transform::SetRotation(const XMFLOAT3& rotation)
     pitchYawRoll = rotation;
     UpdateQuaternion();
 }
-
-// set scale & overloads
 void Transform::SetScale(float x, float y, float z)
 {
     SetScale(XMFLOAT3(x, y, z));
@@ -62,6 +70,7 @@ void Transform::SetScale(const XMFLOAT3& scale)
     this->scale = scale;
     bMatricesDirty = true;
 }
+
 
 // Transforms & overloads
 // Move Absolute
