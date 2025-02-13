@@ -6,16 +6,30 @@ Transform::Transform() :
     position(0, 0, 0),
     pitchYawRoll(0, 0, 0),
     scale(1, 1, 1),
-    dirty(false),
+    up(0, 1, 0),
+    right(1, 0, 0),
+    forward(0, 0, 1),
+    bMatricesDirty(false),
+    bVectorsDirty(false),
     qRotation(XMQuaternionIdentity())
 {
-    XMStoreFloat4x4(&worldMatrix, XMMatrixIdentity());
+    XMStoreFloat4x4(&mWorld, XMMatrixIdentity());
+    XMStoreFloat4x4(&mWorldInverseTranspose, XMMatrixIdentity());
 }
 
 // getters
 const DirectX::XMFLOAT3 Transform::GetPosition() const { return position; }
 const DirectX::XMFLOAT3 Transform::GetRotation() const { return pitchYawRoll; }
 const DirectX::XMFLOAT3 Transform::GetScale() const { return scale; }
+const DirectX::XMFLOAT4X4 Transform::GetWorldMatrix()
+{
+    UpdateMatrices();
+    return mWorld;
+}
+const DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() {
+    UpdateMatrices();
+    return mWorldInverseTranspose;
+}
 
 // set positions & overloads
 void Transform::SetPosition(float x, float y, float z)
@@ -24,7 +38,7 @@ void Transform::SetPosition(float x, float y, float z)
 }
 void Transform::SetPosition(const XMFLOAT3& pos) {
     this->position = pos;
-    dirty = true;
+    bMatricesDirty = true;
 }
 
 // set rotation & overloads
@@ -46,7 +60,7 @@ void Transform::SetScale(float x, float y, float z)
 void Transform::SetScale(const XMFLOAT3& scale)
 {
     this->scale = scale;
-    dirty = true;
+    bMatricesDirty = true;
 }
 
 // Transforms & overloads
@@ -57,8 +71,9 @@ void Transform::MoveAbsolute(float x, float y, float z)
 }
 void Transform::MoveAbsolute(const DirectX::XMFLOAT3& offset)
 {
+    UpdateVectors();
     DirectX::XMStoreFloat3(&position, XMLoadFloat3(&position) + XMLoadFloat3(&offset));
-    dirty = true;
+    bMatricesDirty = true;
 }
 
 // Move Relative
@@ -68,8 +83,9 @@ void Transform::MoveRelative(float x, float y, float z)
 }
 void Transform::MoveRelative(const DirectX::XMFLOAT3& offset)
 {
-    // TODO
-    return;
+    XMVECTOR dir = XMVector3Rotate(XMLoadFloat3(&offset), qRotation);
+    XMStoreFloat3(&position, XMLoadFloat3(&position) + dir);
+    bMatricesDirty = true;
 }
 
 // Rotate
@@ -91,7 +107,7 @@ void Transform::Scale(float x, float y, float z)
 void Transform::Scale(const DirectX::XMFLOAT3& scaleFactor)
 {
     DirectX::XMStoreFloat3(&scale, XMLoadFloat3(&scale) * XMLoadFloat3(&scaleFactor));
-    dirty = true;
+    bMatricesDirty = true;
 }
 
 // update quaternion
@@ -102,23 +118,31 @@ void Transform::UpdateQuaternion() {
 
     // convert to quaternion
     qRotation = XMQuaternionRotationRollPitchYawFromVector(euler);
-    dirty = true;
+    bMatricesDirty = true;
+    bVectorsDirty = true;
 }
 
-const DirectX::XMFLOAT4X4 Transform::GetWorldMatrix()
-{
-    if (dirty) {
-        // make translation, rotation, and scale matrices
-        XMMATRIX mTranslation = XMMatrixTranslation(position.x, position.y, position.z);
-        XMMATRIX mRotation = XMMatrixRotationQuaternion(qRotation);
-        XMMATRIX mScale = XMMatrixScaling(scale.x, scale.y, scale.z);
-        XMMATRIX mWorld = mScale * mRotation * mTranslation;
+void Transform::UpdateMatrices() {
+    if (!bMatricesDirty) return;
 
-        // world matrix as result of transformation
-        XMStoreFloat4x4(&worldMatrix, mWorld);
+    // make translation, rotation, and scale matrices
+    XMMATRIX mT = XMMatrixTranslation(position.x, position.y, position.z);
+    XMMATRIX mR = XMMatrixRotationQuaternion(qRotation);
+    XMMATRIX mS = XMMatrixScaling(scale.x, scale.y, scale.z);
+    XMMATRIX mW = mS * mR * mT;
 
-        dirty = false;
-    }
+    // world matrix as result of transformation
+    XMStoreFloat4x4(&mWorld, mW);
+    XMStoreFloat4x4(&mWorldInverseTranspose, XMMatrixInverse(0, XMMatrixTranspose(mW)));
 
-    return worldMatrix;
+    bMatricesDirty = false;
+}
+
+void Transform::UpdateVectors() {
+    if (!bVectorsDirty) return;
+
+    XMStoreFloat3(&up, XMVector3Rotate(XMVectorSet(0, 1, 0, 0), qRotation));
+    XMStoreFloat3(&right, XMVector3Rotate(XMVectorSet(1, 0, 0, 0), qRotation));
+    XMStoreFloat3(&forward, XMVector3Rotate(XMVectorSet(0, 0, 1, 0), qRotation));
+    bVectorsDirty = false;
 }
