@@ -3,12 +3,15 @@
 #include "Mesh.h"
 #include "BufferStructs.h"
 #include "GameEntity.h"
+#include "Camera.h"
 
 #include <d3d11.h>
+#include <DirectXMath.h>
 #include <wrl/client.h>
 #include <vector>
 #include <memory>
-#include <DirectXMath.h>
+#include <unordered_map>
+#include <string>
 class Game
 {
 public:
@@ -47,11 +50,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-
-	// vector to hold GameEntities
-	std::vector<std::shared_ptr<GameEntity>> lEntities;
-
-	// constant buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+
+	// active camera
+	std::string activeCamName;
+	std::shared_ptr<Camera> activeCamera;
+
+	// vectors to hold GameEntities
+	std::vector<std::shared_ptr<GameEntity>> lEntities;
+	// unordered map for cameras
+	std::unordered_map<std::string, std::shared_ptr<Camera>> umCameras;
 };
 

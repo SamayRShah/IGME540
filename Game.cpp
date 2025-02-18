@@ -85,6 +85,26 @@ void Game::Initialize()
 		// Bind the buffer
 		Graphics::Context->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 	}
+
+	// setup cameras
+	{
+		umCameras = {
+			{"Main Camera", std::make_shared<Camera>(DirectX::XMFLOAT3(0, 0, -5), Window::AspectRatio())},
+			{"Top Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(0, 5, 0), Window::AspectRatio(), Orthographic)},
+			{"Side Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(-5, 0, 0), Window::AspectRatio(), Orthographic)},
+			{"Top Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(0, 5, -3.5), Window::AspectRatio(), Perspective, XM_PIDIV2)},
+			{"Side Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(-4, 0, -3.5), Window::AspectRatio(), Perspective, XM_PI / 5.0f)}
+		};
+
+		umCameras["Top Ortho"]->GetTransform()->SetRotation(XM_PIDIV2, 0, 0);
+		umCameras["Side Ortho"]->GetTransform()->SetRotation(0, XM_PIDIV2, 0);
+		umCameras["Top Perspective"]->GetTransform()->SetRotation(XM_PIDIV4, 0, 0);
+		umCameras["Side Perspective"]->GetTransform()->SetRotation(0, XM_PIDIV4, 0);
+
+
+		activeCamName = "Main Camera";
+		activeCamera = umCameras[activeCamName];
+	}
 }
 
 
@@ -245,6 +265,7 @@ void Game::CreateGeometry()
 	// transform and color data
 	std::shared_ptr<GameEntity> e1 = std::make_shared<GameEntity>("triangle 1", m1);
 	e1->GetTransform()->Scale(0.5f, 0.5f, 1.0f);
+	e1->GetTransform()->SetRotation(XMConvertToRadians(80.0f), 0, 0);
 	lEntities.push_back(e1);
 
 	std::shared_ptr<GameEntity> e2 = std::make_shared<GameEntity>("triangle 2", m1);
@@ -253,18 +274,19 @@ void Game::CreateGeometry()
 
 	std::shared_ptr<GameEntity> e3 = std::make_shared<GameEntity>("Rectangle", m2);
 	e3->GetTransform()->SetPosition(0.25f, 0.8f, 0.0f);
-	e3->colorTint = XMFLOAT4(1, 0, 1, 1);
+	e3->SetColorTint(XMFLOAT4(1, 0, 1, 1));
 	lEntities.push_back(e3);
 
 	std::shared_ptr<GameEntity> e4 = std::make_shared<GameEntity>("Space Ship", m3);
 	e4->GetTransform()->SetPosition(0.55f, 0.0f, 0.0f);
-	e4->colorTint = XMFLOAT4(1, 0, 1, 1);
+	e4->SetColorTint(XMFLOAT4(1, 0, 1, 1));
 	lEntities.push_back(e4);
 
 	std::shared_ptr<GameEntity> e5 = std::make_shared<GameEntity>("Space Ship 2", m3);
 	e5->GetTransform()->SetPosition(0.55f, -0.7f, 0.0f);
 	e5->GetTransform()->SetScale(0.5f, 0.5f, 1.0f);
-	e5->colorTint = XMFLOAT4(0, 0, 1, 1);
+	e5->GetTransform()->SetRotation(0, XMConvertToRadians(80.0f), 0);
+	e5->SetColorTint(XMFLOAT4(0, 0, 1, 1));
 	lEntities.push_back(e5);
 }
 
@@ -275,6 +297,7 @@ void Game::CreateGeometry()
 // --------------------------------------------------------
 void Game::OnResize()
 {
+	if (activeCamera) activeCamera->UpdateProjectionMatrix(Window::AspectRatio());
 }
 
 
@@ -283,6 +306,8 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	activeCamera->Update(deltaTime);
+
 	// setup new frame for ImGui and build the ui
 	UINewFrame(deltaTime);
 	BuildUI();
@@ -309,7 +334,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	// draw meshes
 	for (size_t i = 0; i < lEntities.size(); i++) {
-		lEntities[i]->Draw(constantBuffer);
+		lEntities[i]->Draw(constantBuffer, activeCamera);
 	}
 
 	// prepare ImGui buffers
@@ -366,8 +391,6 @@ void Game::BuildUI() {
 	// Open/create custom window
 	ImGui::Begin("Inspector");
 	{
-		// make tree node and make it open by default
-		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("App Details"))
 		{
 			// show frame rate and window size
@@ -378,16 +401,6 @@ void Game::BuildUI() {
 			ImGui::TreePop();
 		}
 
-		// editor for background color
-		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-		if (ImGui::TreeNode("World Properties"))
-		{
-			ImGui::ColorEdit4("Bg Color", bgColor);
-			ImGui::TreePop();
-		}
-
-		// change ui color style and hide / show demo window
-		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("UI Options"))
 		{
 			ImGui::Text("UI Style:");
@@ -405,6 +418,104 @@ void Game::BuildUI() {
 			if (ImGui::Button(showUIDemoWindow ? "Hide ImGui Demo Window" : "Show ImGui Demo Window"))
 				showUIDemoWindow = !showUIDemoWindow;
 
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("World Properties"))
+		{
+			ImGui::ColorEdit4("Bg Color", bgColor);
+			ImGui::TreePop();
+		}
+
+		// camera ui
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if (ImGui::TreeNode("Camera")) {
+			
+			// drop down select for cameras
+			if (ImGui::BeginCombo("Active Camera", activeCamName.c_str())) {
+				// loop through cameras map
+				for (const auto& [name, cam] : umCameras) {
+					bool selected = (activeCamName == name);
+					if (ImGui::Selectable(name.c_str(), selected)) {
+						activeCamName = name;
+						activeCamera = cam;
+					}
+					if (selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			// interact with transform
+			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+			if (ImGui::TreeNode("Transform")) {
+				Transform& tCam = *activeCamera->GetTransform();
+				XMFLOAT3 pos = tCam.GetPosition();
+				if (ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
+					tCam.SetPosition(pos);
+				}
+				XMFLOAT3 rotation = tCam.GetRotation();
+				rotation.x = XMConvertToDegrees(rotation.x);
+				rotation.y = XMConvertToDegrees(rotation.y);
+				rotation.z = XMConvertToDegrees(rotation.z);
+				if (ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -360.0f, 360.0f, "%.3f")) {
+					tCam.SetRotation(XMConvertToRadians(rotation.x), 
+						XMConvertToRadians(rotation.y), 
+						XMConvertToRadians(rotation.z));
+				}
+				ImGui::TreePop();
+			}
+
+			// interact with setters
+			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+			if (ImGui::TreeNode("Camera options")) {
+				float aspectRatio = activeCamera->GetAspectRatio();
+				if (ImGui::DragFloat("Aspect Ratio", &aspectRatio, 0.01f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetAspectRatio(aspectRatio);
+				}
+				float fov = XMConvertToDegrees(activeCamera->GetFOV());
+				if (ImGui::DragFloat("FOV", &fov, 5, -360, 360)) {
+					activeCamera->SetFOV(XMConvertToRadians(fov));
+				}
+				float orthoWidth = activeCamera->GetOrthoWidth();
+				if (ImGui::DragFloat("Ortho Width", &orthoWidth, 1.0f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetOrthoWidth(orthoWidth);
+				}
+				float nearClip = activeCamera->GetNearClip();
+				if (ImGui::DragFloat("Near Clip", &nearClip, 0.001f, 0.001f, FLT_MAX)) {
+					activeCamera->SetNearClip(nearClip);
+				}
+				float farClip = activeCamera->GetFarClip();
+				if (ImGui::DragFloat("Far Clip", &farClip, 1.0f, nearClip, FLT_MAX)) {
+					activeCamera->SetFarClip(farClip);
+				}
+				float moveSpeed = activeCamera->GetMoveSpeed();
+				if (ImGui::DragFloat("Move Speed", &moveSpeed, 0.1f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetMoveSpeed(moveSpeed);
+				}
+				float lookSpeed = activeCamera->GetLookSpeed();
+				if (ImGui::DragFloat("Look Speed", &lookSpeed, 0.01f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetLookSpeed(lookSpeed);
+				}
+				float moveFactor = activeCamera->GetMoveFactor();
+				if (ImGui::DragFloat("Move Factor", &moveFactor, 0.1f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetMoveFactor(moveFactor);
+				}
+				float fovFactor = activeCamera->GetFovFactor();
+				if (ImGui::DragFloat("FOV Factor", &fovFactor, 0.01f, -FLT_MAX, FLT_MAX)) {
+					activeCamera->SetFovFactor(fovFactor);
+				}
+
+				// Projection Type Dropdown
+				const char* projectionTypes[] = { "Perspective", "Orthographic" };
+				int currentProjection = static_cast<int>(activeCamera->GetProjectionType());
+
+				if (ImGui::Combo("Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE(projectionTypes))) {
+					activeCamera->SetProjectionType(static_cast<CameraProjectionType>(currentProjection));
+				}
+				ImGui::TreePop();
+			}
 			ImGui::TreePop();
 		}
 
@@ -428,23 +539,31 @@ void Game::BuildUI() {
 					}
 					ImGui::TreePop();
 
-					// color tint
-					ImGui::ColorEdit4("color tint", reinterpret_cast<float*>(&targetEntity.colorTint));
+					// color tint setter
+					XMFLOAT4 colorTint = targetEntity.GetColorTint();
+					if (ImGui::ColorEdit4("Color Tint", reinterpret_cast<float*>(&colorTint))) {
+						targetEntity.SetColorTint(colorTint);
+					}
 
-					// position
+					// transform setters
 					XMFLOAT3 pos = targetTransform.GetPosition();
-					ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
-					targetTransform.SetPosition(pos.x, pos.y, pos.z);
-
-					// rotation
+					if (ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
+						targetTransform.SetPosition(pos);
+					}
 					XMFLOAT3 rotation = targetTransform.GetRotation();
-					ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
-					targetTransform.SetRotation(rotation.x, rotation.y, rotation.z);
-
-					// scale
+					rotation.x = XMConvertToDegrees(rotation.x);
+					rotation.y = XMConvertToDegrees(rotation.y);
+					rotation.z = XMConvertToDegrees(rotation.z);
+					if (ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -360.0f, 360.0f, "%.3f")) {
+						targetTransform.SetRotation(
+							XMConvertToRadians(rotation.x), 
+							XMConvertToRadians(rotation.y), 
+							XMConvertToRadians(rotation.z));
+					}
 					XMFLOAT3 scale = targetTransform.GetScale();
-					ImGui::DragFloat3("Scale", reinterpret_cast<float*>(&scale), 0.1f, -FLT_MAX, FLT_MAX, "%.3f");
-					targetTransform.SetScale(scale.x, scale.y, scale.z);
+					if (ImGui::DragFloat3("Scale", reinterpret_cast<float*>(&scale), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
+						targetTransform.SetScale(scale.x, scale.y, scale.z);
+					}
 				}
 				ImGui::PopID();
 			}

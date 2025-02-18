@@ -9,9 +9,9 @@ Transform::Transform() :
     up(0, 1, 0),
     right(1, 0, 0),
     forward(0, 0, 1),
+    qRotation(0, 0, 0, 0),
     bMatricesDirty(false),
-    bVectorsDirty(false),
-    qRotation(XMQuaternionIdentity())
+    bVectorsDirty(false)
 {
     XMStoreFloat4x4(&mWorld, XMMatrixIdentity());
     XMStoreFloat4x4(&mWorldInverseTranspose, XMMatrixIdentity());
@@ -92,7 +92,7 @@ void Transform::MoveRelative(float x, float y, float z)
 }
 void Transform::MoveRelative(const DirectX::XMFLOAT3& offset)
 {
-    XMVECTOR dir = XMVector3Rotate(XMLoadFloat3(&offset), qRotation);
+    XMVECTOR dir = XMVector3Rotate(XMLoadFloat3(&offset), XMLoadFloat4(&qRotation));
     XMStoreFloat3(&position, XMLoadFloat3(&position) + dir);
     bMatricesDirty = true;
 }
@@ -123,10 +123,9 @@ void Transform::Scale(const DirectX::XMFLOAT3& scaleFactor)
 void Transform::UpdateQuaternion() {
     // load pitch yaw roll into xmvector and convert to radians
     XMVECTOR euler = XMLoadFloat3(&pitchYawRoll);
-    euler *= (XM_PI/180.0f);
 
     // convert to quaternion
-    qRotation = XMQuaternionRotationRollPitchYawFromVector(euler);
+    XMStoreFloat4(&qRotation, XMQuaternionRotationRollPitchYawFromVector(euler));
     bMatricesDirty = true;
     bVectorsDirty = true;
 }
@@ -136,7 +135,7 @@ void Transform::UpdateMatrices() {
 
     // make translation, rotation, and scale matrices
     XMMATRIX mT = XMMatrixTranslation(position.x, position.y, position.z);
-    XMMATRIX mR = XMMatrixRotationQuaternion(qRotation);
+    XMMATRIX mR = XMMatrixRotationQuaternion(XMLoadFloat4(&qRotation));
     XMMATRIX mS = XMMatrixScaling(scale.x, scale.y, scale.z);
     XMMATRIX mW = mS * mR * mT;
 
@@ -150,8 +149,9 @@ void Transform::UpdateMatrices() {
 void Transform::UpdateVectors() {
     if (!bVectorsDirty) return;
 
-    XMStoreFloat3(&up, XMVector3Rotate(XMVectorSet(0, 1, 0, 0), qRotation));
-    XMStoreFloat3(&right, XMVector3Rotate(XMVectorSet(1, 0, 0, 0), qRotation));
-    XMStoreFloat3(&forward, XMVector3Rotate(XMVectorSet(0, 0, 1, 0), qRotation));
+    XMVECTOR quat = XMLoadFloat4(&qRotation);
+    XMStoreFloat3(&up, XMVector3Rotate(XMVectorSet(0, 1, 0, 0), quat));
+    XMStoreFloat3(&right, XMVector3Rotate(XMVectorSet(1, 0, 0, 0), quat));
+    XMStoreFloat3(&forward, XMVector3Rotate(XMVectorSet(0, 0, 1, 0), quat));
     bVectorsDirty = false;
 }

@@ -2,9 +2,12 @@
 #include "Transform.h"
 #include "Graphics.h"
 #include "BufferStructs.h"
+#include "Camera.h"
 
 #include <memory>
+#include <DirectXMath.h>
 
+using namespace DirectX;
 // constructors
 GameEntity::GameEntity(const char* name, std::shared_ptr<Mesh> mesh) :
 	mesh(mesh),
@@ -15,12 +18,7 @@ GameEntity::GameEntity(const char* name, std::shared_ptr<Mesh> mesh) :
 }
 GameEntity::GameEntity(std::shared_ptr<Mesh> mesh) : GameEntity("Entity", std::move(mesh)) {}
 
-// getters
-const std::shared_ptr<Mesh> GameEntity::GetMesh() { return mesh; }
-const std::shared_ptr<Transform> GameEntity::GetTransform() { return transform; }
-const char* GameEntity::GetName() { return name; }
-
-void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer)
+void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Camera> cam)
 {
 	// get buffer location in GPU memory
 	D3D11_MAPPED_SUBRESOURCE mapped;
@@ -35,7 +33,9 @@ void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer)
 	// store transform and color data
 	VertexShaderExternalData mData = {
 		colorTint,
-		transform.get()->GetWorldMatrix()
+		transform.get()->GetWorldMatrix(),
+		cam->GetView(),
+		cam->GetProjection()
 	};
 
 	// copy data to gpu

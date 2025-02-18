@@ -38,7 +38,7 @@ private:
 	// Transform data
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT3 pitchYawRoll;
-	DirectX::XMVECTOR qRotation;
+	DirectX::XMFLOAT4 qRotation;
 	DirectX::XMFLOAT3 scale;
 
 	// local orientation vectors
