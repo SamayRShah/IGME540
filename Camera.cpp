@@ -17,8 +17,7 @@ Camera::Camera(
 	float farClip,
 	float moveSpeed,
 	float lookSpeed,
-	float moveFactor,
-	float fovFactor
+	float moveFactor
 )
 	: aspectRatio(aspectRatio),
 	fov(fov),
@@ -28,8 +27,7 @@ Camera::Camera(
 	moveSpeed(moveSpeed),
 	lookSpeed(lookSpeed),
 	tProjection(projectionType),
-	moveFactor(moveFactor),
-	fovFactor(fovFactor)
+	moveFactor(moveFactor)
 {
 	transform = std::make_shared<Transform>();
 	transform->SetPosition(pos);
@@ -68,7 +66,7 @@ void Camera::UpdateProjectionMatrix(float aspectRatio) {
 void Camera::UpdateViewMatrix() {
 	XMFLOAT3 pos = transform->GetPosition();
 	XMFLOAT3 forward = transform->GetForward();
-	XMFLOAT3 up(0, 1, 0); //= transform->GetUp();
+	XMFLOAT3 up(0, 1, 0);
 	XMMATRIX view = XMMatrixLookToLH(
 		XMLoadFloat3(&pos),
 		XMLoadFloat3(&forward),

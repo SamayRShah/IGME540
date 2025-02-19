@@ -432,6 +432,9 @@ void Game::BuildUI() {
 		if (ImGui::TreeNode("Camera")) {
 			
 			// drop down select for cameras
+			// make input width smaller
+			float width = ImGui::CalcItemWidth();
+			ImGui::SetNextItemWidth(width * 3.0f / 4.0f);
 			if (ImGui::BeginCombo("Active Camera", activeCamName.c_str())) {
 				// loop through cameras map
 				for (const auto& [name, cam] : umCameras) {
@@ -470,12 +473,16 @@ void Game::BuildUI() {
 			// interact with setters
 			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 			if (ImGui::TreeNode("Camera options")) {
+				
+				// make input width smaller
+				float width = ImGui::CalcItemWidth();
+				ImGui::PushItemWidth(width * 2.0f/3.0f);
 				float aspectRatio = activeCamera->GetAspectRatio();
 				if (ImGui::DragFloat("Aspect Ratio", &aspectRatio, 0.01f, -FLT_MAX, FLT_MAX)) {
 					activeCamera->SetAspectRatio(aspectRatio);
 				}
 				float fov = XMConvertToDegrees(activeCamera->GetFOV());
-				if (ImGui::DragFloat("FOV", &fov, 5, -360, 360)) {
+				if (ImGui::DragFloat("FOV", &fov, 1.0f, XMConvertToDegrees(0.01f), 360)) {
 					activeCamera->SetFOV(XMConvertToRadians(fov));
 				}
 				float orthoWidth = activeCamera->GetOrthoWidth();
@@ -502,10 +509,6 @@ void Game::BuildUI() {
 				if (ImGui::DragFloat("Move Factor", &moveFactor, 0.1f, -FLT_MAX, FLT_MAX)) {
 					activeCamera->SetMoveFactor(moveFactor);
 				}
-				float fovFactor = activeCamera->GetFovFactor();
-				if (ImGui::DragFloat("FOV Factor", &fovFactor, 0.01f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetFovFactor(fovFactor);
-				}
 
 				// Projection Type Dropdown
 				const char* projectionTypes[] = { "Perspective", "Orthographic" };
@@ -514,6 +517,7 @@ void Game::BuildUI() {
 				if (ImGui::Combo("Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE(projectionTypes))) {
 					activeCamera->SetProjectionType(static_cast<CameraProjectionType>(currentProjection));
 				}
+				ImGui::PopItemWidth();
 				ImGui::TreePop();
 			}
 			ImGui::TreePop();

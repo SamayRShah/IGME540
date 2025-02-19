@@ -23,8 +23,7 @@ public:
 		float farClip = 100.0f,
 		float moveSpeed = 1.0f,
 		float lookSpeed = 0.002f,
-		float moveFactor = 5.0f,
-		float fovFactor = 1.2f
+		float moveFactor = 5.0f
 	);
 
 	// getters
@@ -37,7 +36,6 @@ public:
 	float GetMoveSpeed() const { return moveSpeed; }
 	float GetLookSpeed() const { return lookSpeed; }
 	float GetMoveFactor() const { return moveFactor; }
-	float GetFovFactor() const { return fovFactor;  }
 	const DirectX::XMFLOAT4X4 GetView() const;
 	const DirectX::XMFLOAT4X4 GetProjection() const;
 	const std::shared_ptr<Transform> GetTransform() const { return transform; }
@@ -46,14 +44,13 @@ public:
 	// setters
 	void SetProjectionType(CameraProjectionType type) { tProjection = type; UpdateProjectionMatrix(aspectRatio); }
 	void SetAspectRatio(float ar) { aspectRatio = ar; UpdateProjectionMatrix(ar); }
-	void SetFOV(float f) { fov = f; UpdateProjectionMatrix(aspectRatio); }
+	void SetFOV(float f) { fov = f >= 0.01f ? f : 0.01f; UpdateProjectionMatrix(aspectRatio); }
 	void SetOrthoWidth(float w) { orthoWidth = w; UpdateProjectionMatrix(aspectRatio); }
 	void SetNearClip(float nc) { nearClip = nc; UpdateProjectionMatrix(aspectRatio); }
 	void SetFarClip(float fc) { farClip = fc; UpdateProjectionMatrix(aspectRatio); }
 	void SetMoveSpeed(float ms) { moveSpeed = ms; }
 	void SetLookSpeed(float ls) { lookSpeed = ls; }
 	void SetMoveFactor(float mf) { moveFactor = mf; }
-	void SetFovFactor(float ff) { fovFactor = ff; }
 
 	// update functions
 	void UpdateProjectionMatrix(float aspectRatio);
@@ -70,7 +67,6 @@ private:
 	float moveSpeed;
 	float lookSpeed;
 	float moveFactor;
-	float fovFactor;
 	CameraProjectionType tProjection = Perspective;
 
 	// matrices and transform
