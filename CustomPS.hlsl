@@ -29,7 +29,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     d = abs(d);
     d = 0.02/d;
         
-    color *= d * colorTint + sin(tt)/10.0f;
+    color *= d * (float3)colorTint + sin(tt) / 10.0f;
     
 	return float4(color, 1.0f);
 }
