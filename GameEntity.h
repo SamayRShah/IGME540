@@ -3,6 +3,7 @@
 #include "Mesh.h"
 #include "Transform.h"
 #include "Camera.h"
+#include "Material.h"
 
 #include <memory>
 #include <DirectXMath.h>
@@ -10,29 +11,31 @@
 class GameEntity
 {
 public:
-	// constructor - requires mesh, overloaded with default name
-	GameEntity(const char* name, std::shared_ptr<Mesh> mesh);
-	GameEntity(std::shared_ptr<Mesh> mesh);
+	// constructor - requires mesh and material, overloaded with default name
+	GameEntity(const char* name, std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat);
+	GameEntity(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat);
 
 	// getters
 	const std::shared_ptr<Mesh> GetMesh() const { return mesh; }
 	const std::shared_ptr<Transform> GetTransform() const { return transform; }
+	const std::shared_ptr<Material> GetMaterial() const { return material; }
 	const char* GetName() const { return name; }
-	const DirectX::XMFLOAT4 GetColorTint() const { return colorTint; }
 	
 	// setters
-	void SetName(const char* name) { this->name = name; }
-	void SetColorTint(DirectX::XMFLOAT4 tint) { colorTint = tint; }
+	void SetName(const char* name) { name = name; }
+	void SetMesh(std::shared_ptr<Mesh> m) { mesh = m; }
+	void SetTransform(std::shared_ptr<Transform> t) { transform = t; }
+	void SetMaterial(std::shared_ptr<Material> mat) { material = mat; }
 
 	// draw method
-	void Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Camera> cam);
+	void Draw(std::shared_ptr<Camera> cam, float dt, float tt);
 private:
 	// mesh and transform pointers
 	std::shared_ptr<Mesh> mesh;
 	std::shared_ptr<Transform> transform;
+	std::shared_ptr<Material> material;
 
-	// name and color tint member vars
+	// name member var
 	const char* name;
-	DirectX::XMFLOAT4 colorTint;
 };
 

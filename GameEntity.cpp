@@ -9,40 +9,36 @@
 
 using namespace DirectX;
 // constructors
-GameEntity::GameEntity(const char* name, std::shared_ptr<Mesh> mesh) :
-	mesh(mesh),
-	name(name),
-	colorTint(1,1,1,1)
+GameEntity::GameEntity(const char* name, std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat)
+	: mesh(mesh), name(name), material(mat)
 {
 	transform = std::make_shared<Transform>();
 }
-GameEntity::GameEntity(std::shared_ptr<Mesh> mesh) : GameEntity("Entity", std::move(mesh)) {}
+GameEntity::GameEntity(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat) 
+	: GameEntity("Entity", std::move(mesh), std::move(mat)) {}
 
-void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer, std::shared_ptr<Camera> cam)
+void GameEntity::Draw(std::shared_ptr<Camera> cam, float dt, float tt)
 {
-	// get buffer location in GPU memory
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	Graphics::Context->Map(
-		constantBuffer.Get(),
-		0,
-		D3D11_MAP_WRITE_DISCARD,
-		0,
-		&mapped
-	);
+	std::shared_ptr<SimpleVertexShader> vs = material->GetVertexShader();
+	std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
 
-	// store transform and color data
-	VertexShaderExternalData mData = {
-		colorTint,
-		transform.get()->GetWorldMatrix(),
-		cam->GetView(),
-		cam->GetProjection()
-	};
+	// activate shaders
+	vs->SetShader();
+	ps->SetShader();
 
-	// copy data to gpu
-	memcpy(mapped.pData, &mData, sizeof(VertexShaderExternalData));
+	// set vertex shader data
+	vs->SetMatrix4x4("mWorld", transform->GetWorldMatrix());
+	vs->SetMatrix4x4("mProj", cam->GetProjection());
+	vs->SetMatrix4x4("mView", cam->GetView());
+	vs->SetFloat("dt", dt);
+	vs->SetFloat("tt", tt);
+	vs->CopyAllBufferData();
 
-	// unmap data when done - allow gpu to access that memory
-	Graphics::Context->Unmap(constantBuffer.Get(), 0);
+	// set pixel shader data
+	ps->SetFloat4("colorTint", material->GetColorTint());
+	ps->SetFloat("dt", dt);
+	ps->SetFloat("tt", tt);
+	ps->CopyAllBufferData();
 
 	// draw mesh
 	mesh->Draw();

@@ -30,7 +30,6 @@ public:
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	void LoadShaders();
 	void CreateGeometry();
 
 	// Helper methods for ImGui
@@ -41,17 +40,6 @@ private:
 	// game background color
 	float bgColor[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
-	// Note the usage of ComPtr below
-	//  - This is a smart pointer for objects that abide by the
-	//     Component Object Model, which DirectX objects do
-	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
-
-	// Shaders and shader-related constructs
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-
 	// active camera
 	std::string activeCamName;
 	std::shared_ptr<Camera> activeCamera;
@@ -60,5 +48,10 @@ private:
 	std::vector<std::shared_ptr<GameEntity>> lEntities;
 	// unordered map for cameras
 	std::unordered_map<std::string, std::shared_ptr<Camera>> umCameras;
-};
 
+	// helper methods
+	std::shared_ptr<Mesh> MeshHelper(const char* name);
+	void EntityHelper(const char* name, std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat, DirectX::XMFLOAT3 translate);
+	std::shared_ptr<SimpleVertexShader> VSHelper(const std::wstring& filename);
+	std::shared_ptr<SimplePixelShader> PSHelper(const std::wstring& filename);
+};

@@ -1,10 +1,11 @@
 
 cbuffer ExternalData : register(b0)
 {
-	float4 colorTint;
-	matrix world;
-    matrix view;
-    matrix projection;
+	matrix mWorld;
+    matrix mProj;
+    matrix mView;
+    float dt;
+    float tt;
 }
 
 // Struct representing a single vertex worth of data
@@ -14,13 +15,9 @@ cbuffer ExternalData : register(b0)
 // - Each variable must have a semantic, which defines its usage
 struct VertexShaderInput
 { 
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
 	float3 localPosition	: POSITION;     // XYZ position
-	float4 color			: COLOR;        // RGBA color
+    float2 uv				: TEXCOORD;     // Texture coordinate
+    float3 normal			: NORMAL;		// normal coordinate
 };
 
 // Struct representing the data we're sending down the pipeline
@@ -30,13 +27,9 @@ struct VertexShaderInput
 // - Each variable must have a semantic, which defines its usage
 struct VertexToPixel
 {
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;	// XYZW position (System Value Position)
-	float4 color			: COLOR;        // RGBA color
+    float4 screenPosition	: SV_POSITION; // XYZW position (System Value Position)
+    float2 uv				: TEXCOORD;
+    float3 normal			: NORMAL;
 };
 
 // --------------------------------------------------------
@@ -59,13 +52,12 @@ VertexToPixel main( VertexShaderInput input )
 	// - Each of these components is then automatically divided by the W component, 
 	//   which we're leaving at 1.0 for now (this is more useful when dealing with 
 	//   a perspective projection matrix, which we'll get to in the future).
-    matrix wvp = mul(projection, mul(view, world));
+    matrix wvp = mul(mProj, mul(mView, mWorld));
     output.screenPosition = mul(wvp, float4(input.localPosition, 1.0f));
 
-	// Pass the color through 
-	// - The values will be interpolated per-pixel by the rasterizer
-	// - We don't need to alter it here, but we do need to send it to the pixel shader
-	output.color = input.color * colorTint;
+	// pass through other data
+    output.uv = input.uv;
+    output.normal = input.normal;
 
 	// Whatever we return will make its way through the pipeline to the
 	// next programmable stage we're using (the pixel shader for now)
