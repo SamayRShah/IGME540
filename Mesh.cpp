@@ -358,7 +358,7 @@ void Mesh::CreateBuffers(Vertex* ptrVertices, size_t nVertices, UINT* ptrIndices
 	// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
 	Graphics::Device->CreateBuffer(&ibd, &initialIndexData, this->ib.GetAddressOf());
 
-	this->nVertices = nVertices;
-	this->nIndices = nIndices;
-	this->nTris = nIndices / 3;
+	this->nVertices = (UINT)nVertices;
+	this->nIndices = (UINT)nIndices;
+	this->nTris = (UINT)nIndices / 3;
 }
