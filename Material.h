@@ -5,23 +5,52 @@
 class Material
 {
 public:
+	// constructor
 	Material(const char* name, std::shared_ptr<SimpleVertexShader> vs, 
 		std::shared_ptr<SimplePixelShader> ps, DirectX::XMFLOAT4 ct);
 
+	// getters
+	const char* GetName() { return name; }
+	const DirectX::XMFLOAT4 GetColorTint() const { return colorTint; }
 	const std::shared_ptr<SimplePixelShader> GetPixelShader() { return pixelShader; }
 	const std::shared_ptr<SimpleVertexShader> GetVertexShader() { return vertexShader; }
-	const DirectX::XMFLOAT4 GetColorTint() const { return colorTint; }
-	const char* GetName() { return name; }
+	const DirectX::XMFLOAT2 GetUvScale() const { return uvScale; }
+	const DirectX::XMFLOAT2 GetUvOffset() const { return uvOffset; }
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetTextureSRVMap() { return textureSRVs; }
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11SamplerState>>& GetSamplerMap() { return samplers; }
 
+	// setters
 	void SetPixelShader(std::shared_ptr<SimplePixelShader> ps) { pixelShader = ps; }
 	void SetVertexShader(std::shared_ptr<SimpleVertexShader> vs) { vertexShader = vs; }
 	void SetColorTint(DirectX::XMFLOAT4 ct) { colorTint = ct; }
-	void SetName(const char* name) { this->name = name; }
+	void SetName(const char* name) { this->name = name; } 
+	void SetUvScale(DirectX::XMFLOAT2 s) { uvScale = s; }
+	void SetUvOffset(DirectX::XMFLOAT2 off) { uvOffset = off; }
+
+	// texture adders / removers
+	void AddTextureSRV(std::string name, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv);
+	void AddSampler(std::string name, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
+	void RemoveTextureSRV(std::string name);
+	void RemoveSampler(std::string name);
+
+	// draw helper
+	void PrepareMaterial();
 
 private:
+	// name for UI
+	const char* name;
+
+	// material properties
 	DirectX::XMFLOAT4 colorTint;
+
+	// shaders
 	std::shared_ptr<SimplePixelShader> pixelShader;
 	std::shared_ptr<SimpleVertexShader> vertexShader;
-	const char* name;
+
+	// textures
+	DirectX::XMFLOAT2 uvScale;
+	DirectX::XMFLOAT2 uvOffset;
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureSRVs;
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11SamplerState>> samplers;
 };
 

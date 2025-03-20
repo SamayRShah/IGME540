@@ -46,8 +46,9 @@ private:
 
 	// vectors to hold GameEntities
 	std::vector<std::shared_ptr<GameEntity>> lEntities;
-	// unordered map for cameras
+	// unordered maps for cams and mats
 	std::unordered_map<std::string, std::shared_ptr<Camera>> umCameras;
+	std::unordered_map<std::string, std::shared_ptr<Material>> umMats;
 
 	// helper methods
 	std::shared_ptr<Mesh> MeshHelper(const char* name);

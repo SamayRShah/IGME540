@@ -1,17 +1,12 @@
 
+#include "ShaderStructs.hlsli"
+
 cbuffer ExternalData : register(b0)
 {
     float4 colorTint;
     float dt;
     float tt;
 }
-
-struct VertexToPixel
-{
-    float4 screenPosition	: SV_POSITION; // XYZW position (System Value Position)
-    float2 uv				: TEXCOORD;
-    float3 normal			: NORMAL;
-};
 
 float4 main(VertexToPixel input) : SV_TARGET
 {

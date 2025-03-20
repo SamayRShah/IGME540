@@ -16,6 +16,7 @@
 #include "Material.h"
 
 #include <DirectXMath.h>
+#include <WICTextureLoader.h>
 #include <memory>
 #include <format>
 
@@ -117,6 +118,31 @@ std::shared_ptr<SimplePixelShader> Game::PSHelper(const std::wstring & filename)
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
+	// create sampler state
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	D3D11_SAMPLER_DESC dscSampler{};
+	dscSampler .AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.Filter = D3D11_FILTER_ANISOTROPIC;
+	dscSampler.MaxAnisotropy = 16;
+	dscSampler.MaxLOD = D3D11_FLOAT32_MAX;
+	Graphics::Device->CreateSamplerState(&dscSampler, sampler.GetAddressOf());
+
+	// load textures
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), 
+		FixPath(L"../../Assets/Textures/rock.jpg").c_str(), 0, rockSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/wood.jpg").c_str(), 0, woodSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/metal.jpg").c_str(), 0, metalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> beansSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/beans.jpg").c_str(), 0, beansSRV.GetAddressOf());
+
 	// load meshes
 	std::shared_ptr<Mesh> cube = MeshHelper("cube");
 	std::shared_ptr<Mesh> cylinder = MeshHelper("cylinder");
@@ -136,13 +162,37 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> psDbNs = PSHelper(L"DebugNormalsPS.cso");
 	std::shared_ptr<SimplePixelShader> psDbUVs = PSHelper(L"DebugUVsPS.cso");
 	std::shared_ptr<SimplePixelShader> psCustom = PSHelper(L"CustomPS.cso");
+	std::shared_ptr<SimplePixelShader> psTexMultiply = PSHelper(L"TextureMultiplyPS.cso");
 
-	// create materials
 	std::shared_ptr<Material> ndbmat = std::make_shared<Material>("ndbmat", vs, psDbNs, XMFLOAT4(1, 1, 1, 1));
 	std::shared_ptr<Material> uvdbmat = std::make_shared<Material>("uvdbmat", vs, psDbUVs, XMFLOAT4(1, 1, 1, 1));
 	std::shared_ptr<Material> custom1 = std::make_shared<Material>("custom1", vsSS, psCustom, XMFLOAT4(1, 0, 1, 1));
 	std::shared_ptr<Material> custom2 = std::make_shared<Material>("custom2", vs, psCustom, XMFLOAT4(0, 1, 0, 1));
 	std::shared_ptr<Material> custom3 = std::make_shared<Material>("custom3", vsSS, psCustom, XMFLOAT4(0, 0, 1, 1));
+
+	std::shared_ptr<Material> mRock = std::make_shared<Material>("mRock", vs, ps, XMFLOAT4(1,1,1,1));
+	mRock->AddSampler("BasicSampler", sampler);
+	mRock->AddTextureSRV("SurfaceTexture", rockSRV);
+
+	std::shared_ptr<Material> mWood = std::make_shared<Material>("mWood", vs, psTexMultiply, XMFLOAT4(1, 1, 1, 1));
+	mWood->AddSampler("BasicSampler", sampler);
+	mWood->AddTextureSRV("SurfaceTexture", woodSRV);
+	mWood->AddTextureSRV("DecalTexture", beansSRV);
+
+	std::shared_ptr<Material> mMetal = std::make_shared<Material>("mMetal", vs, ps, XMFLOAT4(1, 1, 1, 1));
+	mMetal->AddSampler("BasicSampler", sampler);
+	mMetal->AddTextureSRV("SurfaceTexture", metalSRV);
+
+	umMats = {
+		{"ndbmat", ndbmat},
+		{"uvdbmat", uvdbmat},
+		{"custom1", custom1},
+		{"custom2", custom2},
+		{"custom3", custom3},
+		{"mRock", mRock},
+		{"mWood", mWood},
+		{"mMetal", mMetal}
+	};
 
 	// create entities
 	EntityHelper("cube1", cube, ndbmat, XMFLOAT3(0, 4, 0));
@@ -168,6 +218,14 @@ void Game::CreateGeometry()
 	EntityHelper("torus3", torus, custom2, XMFLOAT3(16, -4, 0));
 	EntityHelper("quad3", quad, custom3, XMFLOAT3(20, -4, 0));
 	EntityHelper("quad_double_sided3", quad_double_sided, custom3, XMFLOAT3(24, -4, 0));
+
+	EntityHelper("cube4", cube, mRock, XMFLOAT3(0, -8, 0));
+	EntityHelper("cylinder4", cylinder, mRock, XMFLOAT3(4, -8, 0));
+	EntityHelper("helix4", helix, mWood, XMFLOAT3(8, -8, 0));
+	EntityHelper("sphere4", sphere, mWood, XMFLOAT3(12, -8, 0));
+	EntityHelper("torus4", torus, mWood, XMFLOAT3(16, -8, 0));
+	EntityHelper("quad4", quad, mMetal, XMFLOAT3(20, -8, 0));
+	EntityHelper("quad_double_sided4", quad_double_sided, mMetal, XMFLOAT3(24, -8, 0));
 
 }
 
@@ -309,7 +367,6 @@ void Game::BuildUI() {
 		}
 
 		// camera ui
-		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Camera")) {
 			
 			// drop down select for cameras
@@ -404,8 +461,47 @@ void Game::BuildUI() {
 			ImGui::TreePop();
 		}
 
+		// materials ui
+		if (ImGui::TreeNode("Materials")) {
+			for (const auto& [name, mat] : umMats) {
+				if (ImGui::TreeNode(mat->GetName())) {
+					// textures
+					if (ImGui::TreeNode("Textures")) {
+						const auto& textureMap = mat->GetTextureSRVMap();
+						if (textureMap.empty()) {
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
+							ImGui::Text("No texture"); // Use a helper function for italics
+							ImGui::PopStyleColor();
+						}
+						else {
+							for (const auto& [name, texture] : textureMap) {
+								ImGui::Text("%s", name.c_str());
+								ImGui::Image(reinterpret_cast<ImTextureID>(texture.Get()), ImVec2(64, 64));
+							}
+						}
+						ImGui::TreePop();
+					}
+					// color tint setter
+					XMFLOAT4 colorTint = mat->GetColorTint();
+					if (ImGui::ColorEdit4("Color Tint", reinterpret_cast<float*>(&colorTint))) {
+						mat->SetColorTint(colorTint);
+					}
+					// uv setters
+					XMFLOAT2 uvScale = mat->GetUvScale();
+					if (ImGui::DragFloat2("uv scale", reinterpret_cast<float*>(&uvScale), 0.1f)) {
+						mat->SetUvScale(uvScale);
+					}
+					XMFLOAT2 uvOffset = mat->GetUvOffset();
+					if (ImGui::DragFloat2("uv offset", reinterpret_cast<float*>(&uvOffset), 0.1f)) {
+						mat->SetUvOffset(uvOffset);
+					}
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+		
 		// mesh ui
-		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if (ImGui::TreeNode("Entities")) {
 			for (size_t i = 0; i < lEntities.size(); i++) {
 
@@ -416,7 +512,7 @@ void Game::BuildUI() {
 				Material& targetMat = *targetEntity.GetMaterial().get();
 
 				ImGui::PushID(static_cast<UINT>(i));
-				if (ImGui::TreeNode(std::format("Entity: {}", targetEntity.GetName()).c_str())) {
+				if (ImGui::TreeNode(targetEntity.GetName())) {
 					if (ImGui::TreeNode(std::format("Mesh: {}", targetMesh.GetName()).c_str())) {
 						ImGui::Text("triangles: %d", targetMesh.GetTriCount());
 						ImGui::Text("vertices: %d", targetMesh.GetVertexCount());
@@ -447,13 +543,22 @@ void Game::BuildUI() {
 						ImGui::TreePop();
 					}
 
-					if (ImGui::TreeNode(std::format("Material: {}", targetMat.GetName()).c_str())) {
-						// color tint setter
-						XMFLOAT4 colorTint = targetMat.GetColorTint();
-						if (ImGui::ColorEdit4("Color Tint", reinterpret_cast<float*>(&colorTint))) {
-							targetMat.SetColorTint(colorTint);
+					// drop down select for materials
+					// make input width smaller
+					float width = ImGui::CalcItemWidth();
+					ImGui::SetNextItemWidth(width * 2.0f / 4.0f);
+					if (ImGui::BeginCombo("Material", targetMat.GetName())) {
+						// loop through cameras map
+						for (const auto& [name, mat] : umMats) {
+							bool selected = (targetMat.GetName() == name);
+							if (ImGui::Selectable(name.c_str(), selected)) {
+								targetEntity.SetMaterial(mat);
+							}
+							if (selected) {
+								ImGui::SetItemDefaultFocus();
+							}
 						}
-						ImGui::TreePop();
+						ImGui::EndCombo();
 					}
 					ImGui::TreePop();
 				}

@@ -1,3 +1,5 @@
+#include "ShaderStructs.hlsli"
+
 cbuffer ExternalData : register(b0)
 {
 	matrix mWorld;
@@ -6,20 +8,6 @@ cbuffer ExternalData : register(b0)
     float dt;
     float tt;
 }
-
-struct VertexShaderInput
-{ 
-	float3 localPosition	: POSITION;     // XYZ position
-    float2 uv				: TEXCOORD;     // Texture coordinate
-    float3 normal			: NORMAL;		// normal coordinate
-};
-
-struct VertexToPixel
-{
-    float4 screenPosition	: SV_POSITION; // XYZW position (System Value Position)
-    float2 uv				: TEXCOORD;
-    float3 normal			: NORMAL;
-};
 
 VertexToPixel main( VertexShaderInput input )
 {
