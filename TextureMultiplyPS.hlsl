@@ -1,9 +1,19 @@
 #include "ShaderStructs.hlsli"
+#include "Lighting.hlsli"
 
 cbuffer ExternalData : register(b0)
 {
+    // scene related
+    Light lights[MAX_LIGHTS];
+    uint nLights;
+    float3 ambientColor;
+    
+    // camera related
+    float3 v3CamPos;
+    
     // material related
-    float4 colorTint;
+    float3 colorTint;
+    float roughness;
     float2 uvScale;
     float2 uvOffset;
 }
@@ -16,15 +26,37 @@ SamplerState BasicSampler      : register(s0); // "s" registers for samplers
 float4 main(VertexToPixel input) : SV_TARGET
 {
 	// adjust uv coords
+    input.normal = normalize(input.normal);
     input.uv = input.uv * uvScale + uvOffset;
     
-    // Sample both textures
-    float4 color1 = SurfaceTexture.Sample(BasicSampler, input.uv);
-    float4 color2 = DecalTexture.Sample(BasicSampler, input.uv);
+    // sample texture and apply tint
+    float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv).rgb;
+    float3 decalColor = DecalTexture.Sample(BasicSampler, input.uv).rgb;
     
-    // Blend both textures
-    float4 finalColor = color1 * color2;
-
-    // Apply tint
-    return finalColor * colorTint;
+    surfaceColor *= decalColor * colorTint;
+    
+    // lighting
+    float3 totalLight = ambientColor * surfaceColor;
+    for (uint i = 0; i < nLights; i++)
+    {
+        Light light = lights[i];
+        light.Direction = normalize(light.Direction);
+        
+        switch (light.Type)
+        {
+            case LIGHT_TYPE_DIRECTIONAL:
+                totalLight += DirectionalLight(light, input.normal, input.worldPosition,
+                                            v3CamPos, roughness, surfaceColor);
+                break;
+            case LIGHT_TYPE_POINT:
+                totalLight += PointLight(light, input.normal, input.worldPosition,
+                                            v3CamPos, roughness, surfaceColor);
+                break;
+            case LIGHT_TYPE_SPOT:
+                totalLight += SpotLight(light, input.normal, input.worldPosition,
+                                            v3CamPos, roughness, surfaceColor);
+                break;
+        }
+    }
+    return float4(totalLight, 1);
 }

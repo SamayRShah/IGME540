@@ -28,6 +28,7 @@ void GameEntity::Draw(std::shared_ptr<Camera> cam, float dt, float tt)
 
 	// set vertex shader data
 	vs->SetMatrix4x4("mWorld", transform->GetWorldMatrix());
+	vs->SetMatrix4x4("mWorldIT", transform->GetWorldInverseTransposeMatrix());
 	vs->SetMatrix4x4("mProj", cam->GetProjection());
 	vs->SetMatrix4x4("mView", cam->GetView());
 	vs->SetFloat("dt", dt);
@@ -35,11 +36,13 @@ void GameEntity::Draw(std::shared_ptr<Camera> cam, float dt, float tt)
 	vs->CopyAllBufferData();
 
 	// set pixel shader data
-	ps->SetFloat4("colorTint", material->GetColorTint());
-	ps->SetFloat("dt", dt);
-	ps->SetFloat("tt", tt);
+	ps->SetFloat3("v3CamPos", cam->GetTransform()->GetPosition());
+	ps->SetFloat3("colorTint", material->GetColorTint());
+	ps->SetFloat("roughness", material->GetRoughness());
 	ps->SetFloat2("uvScale", material->GetUvScale());
 	ps->SetFloat2("uvOffset", material->GetUvOffset());
+	ps->SetFloat("dt", dt);
+	ps->SetFloat("tt", tt);
 	ps->CopyAllBufferData();
 
 	// prepare material

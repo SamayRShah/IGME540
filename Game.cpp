@@ -4,6 +4,7 @@
 #include "Input.h"
 #include "PathHelpers.h"
 #include "Window.h"
+#include "Lights.h"
 
 // ImGui & simple shaders includes
 #include "ImGui/imgui.h"
@@ -60,18 +61,18 @@ void Game::Initialize()
 	// setup cameras
 	{
 		umCameras = {
-			{"Main Camera", std::make_shared<Camera>(DirectX::XMFLOAT3(12, 8, -25), Window::AspectRatio())},
-			{"Top Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(10, 10, 0), Window::AspectRatio(), Orthographic, XM_PIDIV4, 30.0f)},
-			{"Side Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(30, 0, 0), Window::AspectRatio(), Orthographic, XM_PIDIV4, 30.0f)},
-			{"Top Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(10, 10, -3.5), Window::AspectRatio(), Perspective, XMConvertToRadians(130))},
-			{"Side Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(30, 0, -3.5), Window::AspectRatio(), Perspective, XMConvertToRadians(130))}
+			{"Main Camera", std::make_shared<Camera>(DirectX::XMFLOAT3(-10, 4, -12), Window::AspectRatio())},
+			{"Top Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(0, 5, 0), Window::AspectRatio(), Orthographic, XM_PIDIV4, 30.0f)},
+			{"Side Ortho", std::make_shared<Camera>(DirectX::XMFLOAT3(15, 0, 0), Window::AspectRatio(), Orthographic, XM_PIDIV4, 30.0f)},
+			{"Top Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(0, 5, -3.5), Window::AspectRatio(), Perspective, XMConvertToRadians(100))},
+			{"Side Perspective", std::make_shared<Camera>(DirectX::XMFLOAT3(15, 0, -3.5), Window::AspectRatio(), Perspective, XMConvertToRadians(60))}
 		};
 
-		umCameras["Top Ortho"]->GetTransform()->SetRotation(XM_PIDIV2, 0, XM_PI);
+		umCameras["Top Ortho"]->GetTransform()->SetRotation(XM_PIDIV2, 0, 0);
 		umCameras["Side Ortho"]->GetTransform()->SetRotation(0, -XM_PIDIV2, 0);
 		umCameras["Top Perspective"]->GetTransform()->SetRotation(XM_PIDIV4, 0, 0);
-		umCameras["Side Perspective"]->GetTransform()->SetRotation(0, -XMConvertToRadians(68), 0);
-		umCameras["Main Camera"]->GetTransform()->SetRotation(XMConvertToRadians(14), -XMConvertToRadians(-3), 0);
+		umCameras["Side Perspective"]->GetTransform()->SetRotation(0, -XM_PIDIV2, 0);
+		umCameras["Main Camera"]->GetTransform()->SetRotation(XMConvertToRadians(16), XMConvertToRadians(27), 0);
 
 
 		activeCamName = "Main Camera";
@@ -96,7 +97,9 @@ Game::~Game()
 
 // helpers
 std::shared_ptr<Mesh> Game::MeshHelper(const char* name) {
-	return std::make_shared<Mesh>(name, FixPath(std::format("../../Assets/Models/{}.obj", name)).c_str());
+	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>(name, FixPath(std::format("../../Assets/Models/{}.obj", name)).c_str());
+	umMeshes[newMesh->GetName()] = newMesh;
+	return newMesh;
 }
 
 void Game::EntityHelper(const char* name, std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat, XMFLOAT3 translate) {
@@ -152,7 +155,6 @@ void Game::CreateGeometry()
 	std::shared_ptr<Mesh> quad = MeshHelper("quad");
 	std::shared_ptr<Mesh> quad_double_sided = MeshHelper("quad_double_sided");
 
-
 	// load vertex shaders
 	std::shared_ptr<SimpleVertexShader> vs = VSHelper(L"VertexShader.cso");
 	std::shared_ptr<SimpleVertexShader> vsSS = VSHelper(L"SpinShrinkVS.cso");
@@ -161,72 +163,100 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> ps = PSHelper(L"PixelShader.cso");
 	std::shared_ptr<SimplePixelShader> psDbNs = PSHelper(L"DebugNormalsPS.cso");
 	std::shared_ptr<SimplePixelShader> psDbUVs = PSHelper(L"DebugUVsPS.cso");
+	std::shared_ptr<SimplePixelShader> psDbL = PSHelper(L"DebugLightingPS.cso");
 	std::shared_ptr<SimplePixelShader> psCustom = PSHelper(L"CustomPS.cso");
 	std::shared_ptr<SimplePixelShader> psTexMultiply = PSHelper(L"TextureMultiplyPS.cso");
 
-	std::shared_ptr<Material> ndbmat = std::make_shared<Material>("ndbmat", vs, psDbNs, XMFLOAT4(1, 1, 1, 1));
-	std::shared_ptr<Material> uvdbmat = std::make_shared<Material>("uvdbmat", vs, psDbUVs, XMFLOAT4(1, 1, 1, 1));
-	std::shared_ptr<Material> custom1 = std::make_shared<Material>("custom1", vsSS, psCustom, XMFLOAT4(1, 0, 1, 1));
-	std::shared_ptr<Material> custom2 = std::make_shared<Material>("custom2", vs, psCustom, XMFLOAT4(0, 1, 0, 1));
-	std::shared_ptr<Material> custom3 = std::make_shared<Material>("custom3", vsSS, psCustom, XMFLOAT4(0, 0, 1, 1));
+	std::shared_ptr<Material> ndbmat = std::make_shared<Material>("Normals Debug", vs, psDbNs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	std::shared_ptr<Material> uvdbmat = std::make_shared<Material>("UV Debug", vs, psDbUVs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	std::shared_ptr<Material> ldbmat = std::make_shared<Material>("Lighting Debug", vs, psDbL, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	std::shared_ptr<Material> mCustom1 = std::make_shared<Material>("custom", vs, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	std::shared_ptr<Material> mCustom2 = std::make_shared<Material>("spinning custom", vsSS, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 
-	std::shared_ptr<Material> mRock = std::make_shared<Material>("mRock", vs, ps, XMFLOAT4(1,1,1,1));
+	std::shared_ptr<Material> mRock = std::make_shared<Material>("Rock", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.25f);
 	mRock->AddSampler("BasicSampler", sampler);
 	mRock->AddTextureSRV("SurfaceTexture", rockSRV);
 
-	std::shared_ptr<Material> mWood = std::make_shared<Material>("mWood", vs, psTexMultiply, XMFLOAT4(1, 1, 1, 1));
+	std::shared_ptr<Material> mWood = std::make_shared<Material>("Wood Decal", vs, psTexMultiply, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.1f);
 	mWood->AddSampler("BasicSampler", sampler);
 	mWood->AddTextureSRV("SurfaceTexture", woodSRV);
 	mWood->AddTextureSRV("DecalTexture", beansSRV);
 
-	std::shared_ptr<Material> mMetal = std::make_shared<Material>("mMetal", vs, ps, XMFLOAT4(1, 1, 1, 1));
+	std::shared_ptr<Material> mMetal = std::make_shared<Material>("Metal", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 	mMetal->AddSampler("BasicSampler", sampler);
 	mMetal->AddTextureSRV("SurfaceTexture", metalSRV);
 
 	umMats = {
-		{"ndbmat", ndbmat},
-		{"uvdbmat", uvdbmat},
-		{"custom1", custom1},
-		{"custom2", custom2},
-		{"custom3", custom3},
-		{"mRock", mRock},
-		{"mWood", mWood},
-		{"mMetal", mMetal}
+		{"Normals Debug", ndbmat},
+		{"UV Debug", uvdbmat},
+		{"Lighting Debug", ldbmat},
+		{"custom", mCustom1},
+		{"spinning custom", mCustom2},
+		{"Rock", mRock},
+		{"Wood Decal", mWood},
+		{"Metal", mMetal}
 	};
 
 	// create entities
-	EntityHelper("cube1", cube, ndbmat, XMFLOAT3(0, 4, 0));
-	EntityHelper("cylinder1", cylinder, ndbmat, XMFLOAT3(4, 4, 0));
-	EntityHelper("helix1", helix, ndbmat, XMFLOAT3(8, 4, 0));
-	EntityHelper("sphere1", sphere, ndbmat, XMFLOAT3(12, 4, 0));
-	EntityHelper("torus1", torus, ndbmat, XMFLOAT3(16, 4, 0));
-	EntityHelper("quad1", quad, ndbmat, XMFLOAT3(20, 4, 0));
-	EntityHelper("quad_double_sided1", quad_double_sided, ndbmat, XMFLOAT3(24, 4, 0));
+	EntityHelper("cube", cube, mRock, XMFLOAT3(-9, 0, 0));
+	EntityHelper("cylinder", cylinder, mMetal, XMFLOAT3(-6, 0, 0));
+	EntityHelper("helix", helix, mWood, XMFLOAT3(-3, 0, 0));
+	EntityHelper("sphere", sphere, mWood, XMFLOAT3(0, 0, 0));
+	EntityHelper("torus", torus, mWood, XMFLOAT3(3, 0, 0));
+	EntityHelper("quad", quad, mMetal, XMFLOAT3(6, 0, 0));
+	EntityHelper("quad_double_sided", quad_double_sided, mRock, XMFLOAT3(9, 0, 0));
 
-	EntityHelper("cube2", cube, uvdbmat, XMFLOAT3(0, 0, 0));
-	EntityHelper("cylinder2", cylinder, uvdbmat, XMFLOAT3(4, 0, 0));
-	EntityHelper("helix2", helix, uvdbmat, XMFLOAT3(8, 0, 0));
-	EntityHelper("sphere2", sphere, uvdbmat, XMFLOAT3(12, 0, 0));
-	EntityHelper("torus2", torus, uvdbmat, XMFLOAT3(16, 0, 0));
-	EntityHelper("quad2", quad, uvdbmat, XMFLOAT3(20, 0, 0));
-	EntityHelper("quad_double_sided2", quad_double_sided, uvdbmat, XMFLOAT3(24, 0, 0));
+	// create lights & set bg and ambient colors
+	bgColor = XMFLOAT3(0.4f, 0.6f, 0.75f);
+	ambientColor = XMFLOAT3(0.1f, 0.15f, 0.18f);
 
-	EntityHelper("cube3", cube, custom1, XMFLOAT3(0, -4, 0));
-	EntityHelper("cylinder3", cylinder, custom1, XMFLOAT3(4, -4, 0));
-	EntityHelper("helix3", helix, custom2, XMFLOAT3(8, -4, 0));
-	EntityHelper("sphere3", sphere, custom2, XMFLOAT3(12, -4, 0));
-	EntityHelper("torus3", torus, custom2, XMFLOAT3(16, -4, 0));
-	EntityHelper("quad3", quad, custom3, XMFLOAT3(20, -4, 0));
-	EntityHelper("quad_double_sided3", quad_double_sided, custom3, XMFLOAT3(24, -4, 0));
+	Light dl1= {};
+	dl1.Color = XMFLOAT3(1, 0, 0);
+	dl1.Type = LIGHT_TYPE_DIRECTIONAL;
+	dl1.Intensity = 1;
+	dl1.Direction = XMFLOAT3(1, 0, 0);
+	lights.push_back(dl1);
 
-	EntityHelper("cube4", cube, mRock, XMFLOAT3(0, -8, 0));
-	EntityHelper("cylinder4", cylinder, mRock, XMFLOAT3(4, -8, 0));
-	EntityHelper("helix4", helix, mWood, XMFLOAT3(8, -8, 0));
-	EntityHelper("sphere4", sphere, mWood, XMFLOAT3(12, -8, 0));
-	EntityHelper("torus4", torus, mWood, XMFLOAT3(16, -8, 0));
-	EntityHelper("quad4", quad, mMetal, XMFLOAT3(20, -8, 0));
-	EntityHelper("quad_double_sided4", quad_double_sided, mMetal, XMFLOAT3(24, -8, 0));
+	Light dl2 = {};
+	dl2.Color = XMFLOAT3(0, 1, 0);
+	dl2.Type = LIGHT_TYPE_DIRECTIONAL;
+	dl2.Intensity = 1;
+	dl2.Direction = XMFLOAT3(0, -1, 0);
+	lights.push_back(dl2);
 
+	Light dl3 = {};
+	dl3.Color = XMFLOAT3(0, 0, 1);
+	dl3.Type = LIGHT_TYPE_DIRECTIONAL;
+	dl3.Intensity = 1;
+	dl3.Direction = XMFLOAT3(0, 0, 1);
+	lights.push_back(dl3);
+
+	Light pl1 = {};
+	pl1.Color = XMFLOAT3(1, 1, 1);
+	pl1.Type = LIGHT_TYPE_POINT;
+	pl1.Intensity = 1;
+	pl1.Position = XMFLOAT3(15, 5, 0);
+	pl1.Range = 15;
+	lights.push_back(pl1);
+
+	Light pl2 = {};
+	pl2.Color = XMFLOAT3(1, 1, 1);
+	pl2.Type = LIGHT_TYPE_POINT;
+	pl2.Intensity = 1;
+	pl2.Position = XMFLOAT3(-15, 5, 0);
+	pl2.Range = 15;
+	lights.push_back(pl2);
+
+	Light sl1 = {};
+	sl1.Color = XMFLOAT3(1, 1, 0);
+	sl1.Type = LIGHT_TYPE_SPOT;
+	sl1.Intensity = 2;
+	sl1.Position = XMFLOAT3(0, 5, 0);
+	sl1.Direction = XMFLOAT3(0, -1, 0);
+	sl1.Range = 15;
+	sl1.SpotInnerAngle = XMConvertToRadians(20);
+	sl1.SpotOuterAngle = XMConvertToRadians(30);
+	lights.push_back(sl1);
 }
 
 
@@ -267,12 +297,18 @@ void Game::Draw(float dt, float tt)
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	bgColor);
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	reinterpret_cast<float*>(&bgColor));
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	// draw meshes
 	for (size_t i = 0; i < lEntities.size(); i++) {
+		lEntities[i]->GetMaterial()->GetPixelShader()->SetData(
+			"lights", // The name of the (temporary) variable in the shader
+			&lights[0], // The address of the data to set
+			sizeof(Light) * (int)lights.size()); // The size of the data (the whole struct!) to set
+		lEntities[i]->GetMaterial()->GetPixelShader()->SetInt("nLights", (int)lights.size());
+		lEntities[i]->GetMaterial()->GetPixelShader()->SetFloat3("ambient", ambientColor);
 		lEntities[i]->Draw(activeCamera, dt, tt);
 	}
 
@@ -362,7 +398,49 @@ void Game::BuildUI() {
 
 		if (ImGui::TreeNode("World Properties"))
 		{
-			ImGui::ColorEdit4("Bg Color", bgColor);
+			ImGui::ColorEdit3("Bg Color", reinterpret_cast<float*>(&bgColor));
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode(std::format("Lights ({})", (int)lights.size()).c_str())) {
+			// Array of light type labels
+			const char* lightTypeItems[] = { "Directional", "Point", "Spot" };
+			for (size_t i = 0; i < lights.size(); i++) {
+				Light* light = &lights[i];
+				int lightType = light->Type;
+				if (ImGui::TreeNode(std::format("light [{}] ({})", i, lightTypeItems[lightType]).c_str())) {
+					// styling width
+					float width = ImGui::CalcItemWidth();
+					ImGui::PushItemWidth(width * 4.0f / 5.0f);
+					// ComboBox to select light type
+					if (ImGui::Combo("Light Type", &lightType, lightTypeItems, IM_ARRAYSIZE(lightTypeItems))) {
+						// Update the light type in your Light object
+						light->Type = lightType;
+					}
+
+					// Drag Float Inputs for Light Properties
+					ImGui::ColorEdit3("Color", reinterpret_cast<float*>(&light->Color));
+					ImGui::DragFloat3("Position", reinterpret_cast<float*>(&light->Position), 0.1f, -FLT_MAX, FLT_MAX, "%.2f");
+					ImGui::DragFloat3("Direction", reinterpret_cast<float*>(&light->Direction), 0.1f, -1.0f, 1.0f, "%.2f");
+					ImGui::DragFloat("Range", &light->Range, 0.1f, 0.0f, FLT_MAX, "%.2f");
+					ImGui::DragFloat("Intensity", &light->Intensity, 0.1f, 0.0f, FLT_MAX, "%.2f");
+
+					// float input for inner/outer angles in degrees
+					float sIA = XMConvertToDegrees(light->SpotInnerAngle);
+					float sOA = XMConvertToDegrees(light->SpotOuterAngle);
+					if (ImGui::DragFloat("Spot Inner Angle", &sIA, 0.1f, 0.0f, 90.0f, "%.2f")) {
+						light->SpotInnerAngle = XMConvertToRadians(sIA);
+					}
+					if (ImGui::DragFloat("Spot Outer Angle", &sOA, 0.1f, 0.0f, 90.0f, "%.2f")) {
+						light->SpotOuterAngle = XMConvertToRadians(sOA);
+					}
+
+					ImGui::DragFloat2("Padding", reinterpret_cast<float*>(&light->Padding), 0.01f, 0.0f, 1.0f, "%.2f");
+					ImGui::PopItemWidth();
+
+					ImGui::TreePop();
+				}
+			}
 			ImGui::TreePop();
 		}
 
@@ -482,8 +560,8 @@ void Game::BuildUI() {
 						ImGui::TreePop();
 					}
 					// color tint setter
-					XMFLOAT4 colorTint = mat->GetColorTint();
-					if (ImGui::ColorEdit4("Color Tint", reinterpret_cast<float*>(&colorTint))) {
+					XMFLOAT3 colorTint = mat->GetColorTint();
+					if (ImGui::ColorEdit3("Color Tint", reinterpret_cast<float*>(&colorTint))) {
 						mat->SetColorTint(colorTint);
 					}
 					// uv setters
@@ -504,7 +582,6 @@ void Game::BuildUI() {
 		// mesh ui
 		if (ImGui::TreeNode("Entities")) {
 			for (size_t i = 0; i < lEntities.size(); i++) {
-
 				// get address for entity, mesh, and transform
 				GameEntity& targetEntity = *lEntities[i].get();
 				Mesh& targetMesh = *targetEntity.GetMesh().get();
@@ -514,12 +591,77 @@ void Game::BuildUI() {
 				ImGui::PushID(static_cast<UINT>(i));
 				if (ImGui::TreeNode(targetEntity.GetName())) {
 					if (ImGui::TreeNode(std::format("Mesh: {}", targetMesh.GetName()).c_str())) {
+						// style width
+						float width = ImGui::CalcItemWidth();
+						ImGui::SetNextItemWidth(width * 3.0f / 4.0f);
+						if (ImGui::BeginCombo("Mesh", targetMesh.GetName())) {
+							// loop through meshes map
+							for (const auto& [name, mesh] : umMeshes) {
+								bool selected = (targetMat.GetName() == name);
+								if (ImGui::Selectable(name.c_str(), selected)) {
+									targetEntity.SetMesh(mesh);
+								}
+								if (selected) {
+									ImGui::SetItemDefaultFocus();
+								}
+							}
+							ImGui::EndCombo();
+						}
 						ImGui::Text("triangles: %d", targetMesh.GetTriCount());
 						ImGui::Text("vertices: %d", targetMesh.GetVertexCount());
 						ImGui::Text("indices: %d", targetMesh.GetIndexCount());
 						ImGui::TreePop();
 					}
-
+					if (ImGui::TreeNode(std::format("Material: {}", targetMat.GetName()).c_str())) {
+						// style width
+						float width = ImGui::CalcItemWidth();
+						ImGui::PushItemWidth(width * 3.0f / 4.0f);
+						if (ImGui::BeginCombo("Material", targetMat.GetName())) {
+							// loop through cameras map
+							for (const auto& [name, mat] : umMats) {
+								bool selected = (targetMat.GetName() == name);
+								if (ImGui::Selectable(name.c_str(), selected)) {
+									targetEntity.SetMaterial(mat);
+								}
+								if (selected) {
+									ImGui::SetItemDefaultFocus();
+								}
+							}
+							ImGui::EndCombo();
+						}
+						// textures
+						if (ImGui::TreeNode("Textures")) {
+							const auto& textureMap = targetMat.GetTextureSRVMap();
+							if (textureMap.empty()) {
+								ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+								ImGui::Text("No texture");
+								ImGui::PopStyleColor();
+							}
+							else {
+								for (const auto& [name, texture] : textureMap) {
+									ImGui::Text("%s", name.c_str());
+									ImGui::Image(reinterpret_cast<ImTextureID>(texture.Get()), ImVec2(64, 64));
+								}
+							}
+							ImGui::TreePop();
+						}
+						// color tint setter
+						XMFLOAT3 colorTint = targetMat.GetColorTint();
+						if (ImGui::ColorEdit3("Color Tint", reinterpret_cast<float*>(&colorTint))) {
+							targetMat.SetColorTint(colorTint);
+						}
+						// uv setters
+						XMFLOAT2 uvScale = targetMat.GetUvScale();
+						if (ImGui::DragFloat2("uv scale", reinterpret_cast<float*>(&uvScale), 0.1f)) {
+							targetMat.SetUvScale(uvScale);
+						}
+						XMFLOAT2 uvOffset = targetMat.GetUvOffset();
+						if (ImGui::DragFloat2("uv offset", reinterpret_cast<float*>(&uvOffset), 0.1f)) {
+							targetMat.SetUvOffset(uvOffset);
+						}
+						ImGui::PopItemWidth();
+						ImGui::TreePop();
+					}
 					if (ImGui::TreeNode("Transform:")) {
 						// transform setters
 						XMFLOAT3 pos = targetTransform.GetPosition();
@@ -541,24 +683,6 @@ void Game::BuildUI() {
 							targetTransform.SetScale(scale.x, scale.y, scale.z);
 						}
 						ImGui::TreePop();
-					}
-
-					// drop down select for materials
-					// make input width smaller
-					float width = ImGui::CalcItemWidth();
-					ImGui::SetNextItemWidth(width * 2.0f / 4.0f);
-					if (ImGui::BeginCombo("Material", targetMat.GetName())) {
-						// loop through cameras map
-						for (const auto& [name, mat] : umMats) {
-							bool selected = (targetMat.GetName() == name);
-							if (ImGui::Selectable(name.c_str(), selected)) {
-								targetEntity.SetMaterial(mat);
-							}
-							if (selected) {
-								ImGui::SetItemDefaultFocus();
-							}
-						}
-						ImGui::EndCombo();
 					}
 					ImGui::TreePop();
 				}

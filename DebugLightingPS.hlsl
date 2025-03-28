@@ -19,10 +19,6 @@ cbuffer ExternalData : register(b0)
     float2 uvOffset;
 }
 
-// texture related resources
-Texture2D SurfaceTexture  : register(t0); // "t" registers for textures
-SamplerState BasicSampler : register(s0); // "s" registers for samplers
-
 float4 main(VertexToPixel input) : SV_TARGET
 {
 	// adjust uv coords
@@ -30,7 +26,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     input.uv = input.uv * uvScale + uvOffset;
     
     // sample texture and apply tint
-    float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv).rgb * colorTint;
+    float3 surfaceColor = colorTint;
     
     // lighting
     float3 totalLight = ambientColor * surfaceColor;
@@ -42,7 +38,7 @@ float4 main(VertexToPixel input) : SV_TARGET
         switch (light.Type)
         {
             case LIGHT_TYPE_DIRECTIONAL:
-                totalLight += DirectionalLight(light, input.normal, input.worldPosition, 
+                totalLight += DirectionalLight(light, input.normal, input.worldPosition,
                                             v3CamPos, roughness, surfaceColor);
                 break;
             case LIGHT_TYPE_POINT:

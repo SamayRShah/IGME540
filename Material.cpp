@@ -2,11 +2,11 @@
 using namespace DirectX;
 
 Material::Material(const char* name, std::shared_ptr<SimpleVertexShader> vs,
-	std::shared_ptr<SimplePixelShader> ps, DirectX::XMFLOAT4 ct)
-	: name(name), pixelShader(ps), vertexShader(vs), colorTint(ct)
+	std::shared_ptr<SimplePixelShader> ps, DirectX::XMFLOAT3 ct, float r)
+	: name(name), pixelShader(ps), vertexShader(vs), colorTint(ct), roughness(r)
 {
-	uvScale = XMFLOAT2(1, 1);
-	uvOffset = XMFLOAT2(0, 0);
+	uvScale = XMFLOAT2(1.0f, 1.0f);
+	uvOffset = XMFLOAT2(0.0f, 0.0f);
 }
 
 void Material::AddTextureSRV(std::string name, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv)

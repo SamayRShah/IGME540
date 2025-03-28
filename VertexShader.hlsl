@@ -4,10 +4,9 @@
 cbuffer ExternalData : register(b0)
 {
 	matrix mWorld;
+    matrix mWorldIT;
     matrix mProj;
     matrix mView;
-    float dt;
-    float tt;
 }
 
 // --------------------------------------------------------
@@ -27,8 +26,9 @@ VertexToPixel main( VertexShaderInput input )
 
 	// pass through other data
     output.uv = input.uv;
-    output.normal = input.normal;
-
+    output.normal = mul((float3x3) mWorldIT, input.normal); 
+    output.worldPosition = mul(mWorld, float4(input.localPosition, 1)).xyz;
+    
 	// Whatever we return will make its way through the pipeline to the
 	// next programmable stage we're using (the pixel shader for now)
 	return output;

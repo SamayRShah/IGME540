@@ -4,6 +4,7 @@
 #include "BufferStructs.h"
 #include "GameEntity.h"
 #include "Camera.h"
+#include "Lights.h"
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -37,8 +38,10 @@ private:
 	void BuildUI();
 	bool showUIDemoWindow; // track state of demo window
 
-	// game background color
-	float bgColor[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
+	// game environment vars
+	DirectX::XMFLOAT3 bgColor;
+	DirectX::XMFLOAT3 ambientColor;
+	std::vector<Light> lights;
 
 	// active camera
 	std::string activeCamName;
@@ -46,9 +49,10 @@ private:
 
 	// vectors to hold GameEntities
 	std::vector<std::shared_ptr<GameEntity>> lEntities;
-	// unordered maps for cams and mats
+	// unordered maps for cams, mats, meshes
 	std::unordered_map<std::string, std::shared_ptr<Camera>> umCameras;
 	std::unordered_map<std::string, std::shared_ptr<Material>> umMats;
+	std::unordered_map<std::string, std::shared_ptr<Mesh>> umMeshes;
 
 	// helper methods
 	std::shared_ptr<Mesh> MeshHelper(const char* name);
