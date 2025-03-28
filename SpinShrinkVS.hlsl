@@ -36,6 +36,8 @@ VertexToPixel main( VertexShaderInput input )
 
     output.uv = input.uv;
     output.normal = input.normal;
+    output.uv = input.uv;
+    output.worldPosition = mul(mWorld, float4(input.localPosition, 1)).xyz;
 
 	return output;
 }
