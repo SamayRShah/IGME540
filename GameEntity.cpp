@@ -29,8 +29,8 @@ void GameEntity::Draw(std::shared_ptr<Camera> cam, float dt, float tt)
 	// set vertex shader data
 	vs->SetMatrix4x4("mWorld", transform->GetWorldMatrix());
 	vs->SetMatrix4x4("mWorldIT", transform->GetWorldInverseTransposeMatrix());
-	vs->SetMatrix4x4("mProj", cam->GetProjection());
 	vs->SetMatrix4x4("mView", cam->GetView());
+	vs->SetMatrix4x4("mProj", cam->GetProjection());
 	vs->SetFloat("dt", dt);
 	vs->SetFloat("tt", tt);
 	vs->CopyAllBufferData();

@@ -25,13 +25,38 @@ struct Light
     float2 Padding; // 64 bytes
 };
 
+// utility functions
+
+// unpack normal map, and get in range
+float3 SampleAndUnpackNormalMap(Texture2D map, SamplerState samp, float2 uv)
+{
+    return map.Sample(samp, uv).rgb * 2.0f - 1.0f;
+}
+
+// convert tangent-space normal map to world space normal
+float3 NormalMapping(Texture2D map, SamplerState samp, float2 uv, float3 normal, float3 tangent)
+{
+	// get unpacked normal
+    float3 unpackedNormal = normalize(SampleAndUnpackNormalMap(map, samp, uv));
+
+	// Create TBN Matrix
+    float3 N = normalize(normal);
+    float3 T = normalize(tangent);
+    T = normalize(T - N * dot(T, N));
+    float3 B = cross(T, N);
+    float3x3 TBN = float3x3(T, B, N);
+
+	// Adjust the normal from the map and simply use the results
+    return normalize(mul(unpackedNormal, TBN));
+}
+
 // lighting helpers
 float Diffuse(float3 normal, float3 dirToLight)
 {
     return saturate(dot(normal, dirToLight));
 }
 
-float SpecularPhong(float3 normal, float3 dirToLight, float3 dirToCam, float roughness)
+float SpecularPhong(float3 normal, float3 dirToLight, float3 dirToCam, float roughness, float3 diffuse)
 {
     // convert roughness -> sensible exponent value
     float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
@@ -43,7 +68,17 @@ float SpecularPhong(float3 normal, float3 dirToLight, float3 dirToCam, float rou
     float3 R = reflect(dirToLight, normal);
     
     // specular calculation
-    return pow(max(dot(R, V), 0.0f), specExponent);
+    float spec = pow(max(dot(R, V), 0.0f), specExponent);
+    
+    // Cut the specular if the diffuse contribution is zero
+    // - any() returns 1 if any component of the param is non-zero
+    // - In other words:
+    // - If the diffuse amount is 0, any(diffuse) returns 0
+    // - If the diffuse amount is != 0, any(diffuse) returns 1
+    // - So when diffuse is 0, specular becomes 0
+    spec *= any(diffuse);
+    
+    return spec;
 }
 
 float Attenuate(Light light, float3 worldPos)
@@ -65,7 +100,7 @@ float3 DirectionalLight(
     float3 diffuseTerm = Diffuse(normal, toLight);
     
     // calculate specular
-    float spec = SpecularPhong(normal, light.Direction, toCam, roughness);
+    float spec = SpecularPhong(normal, light.Direction, toCam, roughness, diffuseTerm);
     
     // total color
     // return (surfaceColor * (diffuseTerm + spec)) * light.Intensity * light.Color; // Tint specular
@@ -86,7 +121,7 @@ float3 PointLight(
     float3 diffuseTerm = Diffuse(normal, toLight);
     
     // calculate specular
-    float spec = SpecularPhong(normal, light.Direction, toCam, roughness);
+    float spec = SpecularPhong(normal, light.Direction, toCam, roughness, diffuseTerm);
     
    // total color
    // return (surfaceColor * (diffuseTerm + spec)) * atten * light.Intensity * light.Color; // Tint specular

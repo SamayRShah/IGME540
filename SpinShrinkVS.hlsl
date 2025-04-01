@@ -3,8 +3,9 @@
 cbuffer ExternalData : register(b0)
 {
 	matrix mWorld;
-    matrix mProj;
+    matrix mWorldIT;
     matrix mView;
+    matrix mProj;
     float dt;
     float tt;
 }
@@ -35,7 +36,8 @@ VertexToPixel main( VertexShaderInput input )
     output.screenPosition = mul(wvp, rotatedPosition);
 
     output.uv = input.uv;
-    output.normal = input.normal;
+    output.normal = mul((float3x3) mWorldIT, input.normal);
+    output.tangent = mul((float3x3) mWorld, input.tangent);
     output.uv = input.uv;
     output.worldPosition = mul(mWorld, float4(input.localPosition, 1)).xyz;
 

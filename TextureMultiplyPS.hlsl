@@ -21,6 +21,7 @@ cbuffer ExternalData : register(b0)
 // texture related resources
 Texture2D SurfaceTexture       : register(t0); // "t" registers for textures
 Texture2D DecalTexture         : register(t1);
+Texture2D NormalMap            : register(t2);
 SamplerState BasicSampler      : register(s0); // "s" registers for samplers
 
 float4 main(VertexToPixel input) : SV_TARGET
@@ -32,6 +33,9 @@ float4 main(VertexToPixel input) : SV_TARGET
     // sample texture and apply tint
     float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv).rgb;
     float3 decalColor = DecalTexture.Sample(BasicSampler, input.uv).rgb;
+    
+    // apply normal map
+    input.normal = NormalMapping(NormalMap, BasicSampler, input.uv, input.normal, input.tangent);
     
     surfaceColor *= decalColor * colorTint;
     

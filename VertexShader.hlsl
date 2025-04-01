@@ -5,8 +5,8 @@ cbuffer ExternalData : register(b0)
 {
 	matrix mWorld;
     matrix mWorldIT;
-    matrix mProj;
     matrix mView;
+    matrix mProj;
 }
 
 // --------------------------------------------------------
@@ -27,6 +27,7 @@ VertexToPixel main( VertexShaderInput input )
 	// pass through other data
     output.uv = input.uv;
     output.normal = mul((float3x3) mWorldIT, input.normal); 
+    output.tangent = mul((float3x3) mWorld, input.tangent);
     output.worldPosition = mul(mWorld, float4(input.localPosition, 1)).xyz;
     
 	// Whatever we return will make its way through the pipeline to the

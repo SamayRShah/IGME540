@@ -16,6 +16,7 @@
 #include "Mesh.h"
 #include "Material.h"
 
+// d3d and std includes
 #include <DirectXMath.h>
 #include <WICTextureLoader.h>
 #include <memory>
@@ -132,10 +133,10 @@ void Game::CreateGeometry()
 	dscSampler.MaxLOD = D3D11_FLOAT32_MAX;
 	Graphics::Device->CreateSamplerState(&dscSampler, sampler.GetAddressOf());
 
-	// load textures
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockSRV;
+	// load textures & normal maps
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cliffSRV;
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), 
-		FixPath(L"../../Assets/Textures/rock.jpg").c_str(), 0, rockSRV.GetAddressOf());
+		FixPath(L"../../Assets/Textures/cliff.jpg").c_str(), 0, cliffSRV.GetAddressOf());
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodSRV;
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
 		FixPath(L"../../Assets/Textures/wood.jpg").c_str(), 0, woodSRV.GetAddressOf());
@@ -145,6 +146,31 @@ void Game::CreateGeometry()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> beansSRV;
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
 		FixPath(L"../../Assets/Textures/beans.jpg").c_str(), 0, beansSRV.GetAddressOf());
+
+	// flat normals
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> flatNSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/flat_normals.png").c_str(), 0, flatNSRV.GetAddressOf());
+
+	// textures with normals
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/cobblestone.png").c_str(), 0, cobblestoneSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneNSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/cobblestone_normals.png").c_str(), 0, cobblestoneNSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/cushion.png").c_str(), 0, cushionSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionNSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/cushion_normals.png").c_str(), 0, cushionNSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/rock.png").c_str(), 0, rockSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockNSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(),
+		FixPath(L"../../Assets/Textures/rock_normals.png").c_str(), 0, rockNSRV.GetAddressOf());
 
 	// load meshes
 	std::shared_ptr<Mesh> cube = MeshHelper("cube");
@@ -158,6 +184,7 @@ void Game::CreateGeometry()
 	// load vertex shaders
 	std::shared_ptr<SimpleVertexShader> vs = VSHelper(L"VertexShader.cso");
 	std::shared_ptr<SimpleVertexShader> vsSS = VSHelper(L"SpinShrinkVS.cso");
+	std::shared_ptr<SimpleVertexShader> skyVS = VSHelper(L"SkyVS.cso");
 
 	// load pixel shaders
 	std::shared_ptr<SimplePixelShader> ps = PSHelper(L"PixelShader.cso");
@@ -166,6 +193,7 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> psDbL = PSHelper(L"DebugLightingPS.cso");
 	std::shared_ptr<SimplePixelShader> psCustom = PSHelper(L"CustomPS.cso");
 	std::shared_ptr<SimplePixelShader> psTexMultiply = PSHelper(L"TextureMultiplyPS.cso");
+	std::shared_ptr<SimplePixelShader> skyPS = PSHelper(L"SkyPS.cso");
 
 	std::shared_ptr<Material> ndbmat = std::make_shared<Material>("Normals Debug", vs, psDbNs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 	std::shared_ptr<Material> uvdbmat = std::make_shared<Material>("UV Debug", vs, psDbUVs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
@@ -173,18 +201,36 @@ void Game::CreateGeometry()
 	std::shared_ptr<Material> mCustom1 = std::make_shared<Material>("custom", vs, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 	std::shared_ptr<Material> mCustom2 = std::make_shared<Material>("spinning custom", vsSS, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 
-	std::shared_ptr<Material> mRock = std::make_shared<Material>("Rock", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.25f);
-	mRock->AddSampler("BasicSampler", sampler);
-	mRock->AddTextureSRV("SurfaceTexture", rockSRV);
+	std::shared_ptr<Material> mCliff = std::make_shared<Material>("cliff", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.25f);
+	mCliff->AddSampler("BasicSampler", sampler);
+	mCliff->AddTextureSRV("SurfaceTexture", cliffSRV);
+	mCliff->AddTextureSRV("NormalMap", flatNSRV);
 
 	std::shared_ptr<Material> mWood = std::make_shared<Material>("Wood Decal", vs, psTexMultiply, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.1f);
 	mWood->AddSampler("BasicSampler", sampler);
 	mWood->AddTextureSRV("SurfaceTexture", woodSRV);
 	mWood->AddTextureSRV("DecalTexture", beansSRV);
+	mWood->AddTextureSRV("NormalMap", flatNSRV);
 
 	std::shared_ptr<Material> mMetal = std::make_shared<Material>("Metal", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
 	mMetal->AddSampler("BasicSampler", sampler);
 	mMetal->AddTextureSRV("SurfaceTexture", metalSRV);
+	mMetal->AddTextureSRV("NormalMap", flatNSRV);
+
+	std::shared_ptr<Material> mRock = std::make_shared<Material>("Rock", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	mRock->AddSampler("BasicSampler", sampler);
+	mRock->AddTextureSRV("SurfaceTexture", rockSRV);
+	mRock->AddTextureSRV("NormalMap", rockNSRV);
+
+	std::shared_ptr<Material> mCushion = std::make_shared<Material>("Cushion", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	mCushion->AddSampler("BasicSampler", sampler);
+	mCushion->AddTextureSRV("SurfaceTexture", cushionSRV);
+	mCushion->AddTextureSRV("NormalMap", cushionNSRV);
+
+	std::shared_ptr<Material> mCobblestone = std::make_shared<Material>("CobbleStone", vs, ps, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+	mCobblestone->AddSampler("BasicSampler", sampler);
+	mCobblestone->AddTextureSRV("SurfaceTexture", cobblestoneSRV);
+	mCobblestone->AddTextureSRV("NormalMap", cobblestoneNSRV);
 
 	umMats = {
 		{"Normals Debug", ndbmat},
@@ -192,19 +238,32 @@ void Game::CreateGeometry()
 		{"Lighting Debug", ldbmat},
 		{"custom", mCustom1},
 		{"spinning custom", mCustom2},
-		{"Rock", mRock},
+		{"Cliff", mCliff},
 		{"Wood Decal", mWood},
-		{"Metal", mMetal}
+		{"Metal", mMetal},
+		{"Rock", mRock},
+		{"Cushion", mCushion},
+		{"CobbleStone", mCobblestone}
 	};
 
 	// create entities
-	EntityHelper("cube", cube, mRock, XMFLOAT3(-9, 0, 0));
-	EntityHelper("cylinder", cylinder, mMetal, XMFLOAT3(-6, 0, 0));
-	EntityHelper("helix", helix, mWood, XMFLOAT3(-3, 0, 0));
-	EntityHelper("sphere", sphere, mWood, XMFLOAT3(0, 0, 0));
-	EntityHelper("torus", torus, mWood, XMFLOAT3(3, 0, 0));
-	EntityHelper("quad", quad, mMetal, XMFLOAT3(6, 0, 0));
+	EntityHelper("cube", cube, mCobblestone, XMFLOAT3(-9, 0, 0));
+	EntityHelper("cylinder", cylinder, mCobblestone, XMFLOAT3(-6, 0, 0));
+	EntityHelper("helix", helix, mCushion, XMFLOAT3(-3, 0, 0));
+	EntityHelper("sphere", sphere, mCushion, XMFLOAT3(0, 0, 0));
+	EntityHelper("torus", torus, mCushion, XMFLOAT3(3, 0, 0));
+	EntityHelper("quad", quad, mRock, XMFLOAT3(6, 0, 0));
 	EntityHelper("quad_double_sided", quad_double_sided, mRock, XMFLOAT3(9, 0, 0));
+
+	// create sky
+	sky = std::make_shared<Sky>(
+		FixPath(L"../../Assets/Skies/Clouds Blue/right.png").c_str(),
+		FixPath(L"../../Assets/Skies/Clouds Blue/left.png").c_str(),
+		FixPath(L"../../Assets/Skies/Clouds Blue/up.png").c_str(),
+		FixPath(L"../../Assets/Skies/Clouds Blue/down.png").c_str(),
+		FixPath(L"../../Assets/Skies/Clouds Blue/front.png").c_str(),
+		FixPath(L"../../Assets/Skies/Clouds Blue/back.png").c_str(),
+		cube, skyVS, skyPS, sampler);
 
 	// create lights & set bg and ambient colors
 	bgColor = XMFLOAT3(0.4f, 0.6f, 0.75f);
@@ -311,6 +370,9 @@ void Game::Draw(float dt, float tt)
 		lEntities[i]->GetMaterial()->GetPixelShader()->SetFloat3("ambient", ambientColor);
 		lEntities[i]->Draw(activeCamera, dt, tt);
 	}
+
+	// draw sky
+	sky->Draw(activeCamera);
 
 	// prepare ImGui buffers
 	ImGui::Render(); // Turns this frame’s UI into renderable triangles

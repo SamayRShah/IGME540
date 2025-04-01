@@ -39,5 +39,6 @@ private:
 
 	// helper for creating buffers
 	void CreateBuffers(Vertex* ptrVertices, size_t nVertices, UINT* ptrIndices, size_t nIndices);
+	void CalculateTangents(Vertex* ptrVertices, int numVerts, unsigned int* indices, int numIndeces);
 };
 

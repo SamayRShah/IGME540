@@ -5,6 +5,7 @@
 #include "GameEntity.h"
 #include "Camera.h"
 #include "Lights.h"
+#include "Sky.h"
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -42,6 +43,7 @@ private:
 	DirectX::XMFLOAT3 bgColor;
 	DirectX::XMFLOAT3 ambientColor;
 	std::vector<Light> lights;
+	std::shared_ptr<Sky> sky;
 
 	// active camera
 	std::string activeCamName;
@@ -49,6 +51,7 @@ private:
 
 	// vectors to hold GameEntities
 	std::vector<std::shared_ptr<GameEntity>> lEntities;
+
 	// unordered maps for cams, mats, meshes
 	std::unordered_map<std::string, std::shared_ptr<Camera>> umCameras;
 	std::unordered_map<std::string, std::shared_ptr<Material>> umMats;
