@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <memory>
+#include <DirectXMath.h>
 class Sky
 {
 public:
@@ -24,9 +25,14 @@ public:
 
 	void Draw(std::shared_ptr<Camera> cam);
 
+	inline const DirectX::XMFLOAT3 GetAmbientColor() const { return ambientColor; }
+	inline void SetAmbientColor(DirectX::XMFLOAT3& color) { ambientColor = color; }
 private:
 	// mesh
 	std::shared_ptr<Mesh> skyMesh;
+
+	// ambient color
+	DirectX::XMFLOAT3 ambientColor = DirectX::XMFLOAT3(0.1f, 0.15f, 0.18f);
 
 	// shaders
 	std::shared_ptr<SimpleVertexShader> skyVS;

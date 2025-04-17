@@ -33,6 +33,7 @@ public:
 
 	// texture adders / removers
 	void AddTextureSRV(std::string name, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv);
+	void ReplaceTextureSRV(std::string name, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv);
 	void AddSampler(std::string name, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void RemoveTextureSRV(std::string name);
 	void RemoveSampler(std::string name);
