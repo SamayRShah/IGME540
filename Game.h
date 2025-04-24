@@ -67,6 +67,17 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<Sky>> umSkies;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> lTextureSRVs;
 
+	// shadow mapping
+	int shadowMapResolution = 1024;
+	float lightProjectionSize = 20.0f;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> shadowDSV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shadowSRV;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> shadowRasterizer;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> shadowSampler;
+	std::shared_ptr<SimpleVertexShader> shadowVS;
+	DirectX::XMFLOAT4X4 lightViewMatrix;
+	DirectX::XMFLOAT4X4 lightProjectionMatrix;
+
 	// texture loading helper methods
 	void LoadPBRTexture(
 		const std::wstring& name,
@@ -103,7 +114,8 @@ private:
 		);
 	std::shared_ptr<Mesh> MeshHelper(const char* name);
 	void EntityHelper(const char* name, std::shared_ptr<Mesh> mesh, 
-		std::shared_ptr<Material> mat, DirectX::XMFLOAT3 translate);
+		std::shared_ptr<Material> mat, DirectX::XMFLOAT3 translate, 
+		DirectX::XMFLOAT3 scale = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 	std::shared_ptr<SimpleVertexShader> VSHelper(const std::wstring& filename);
 	std::shared_ptr<SimplePixelShader> PSHelper(const std::wstring& filename);
 };

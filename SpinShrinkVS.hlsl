@@ -10,10 +10,10 @@ cbuffer ExternalData : register(b0)
     float tt;
 }
 
-VertexToPixel main( VertexShaderInput input )
+VertexToPixelBasic main( VertexShaderInput input )
 {
 	// Set up output struct
-	VertexToPixel output;
+	VertexToPixelBasic output;
 	
     float scale = 1.0f + 0.5f * sin(tt * 5.0f);
     

@@ -26,6 +26,16 @@ struct VertexToPixel
     float3 normal			: NORMAL;
     float3 worldPosition    : POSITION;
     float3 tangent          : TANGENT;
+    float4 shadowMapPos     : SHADOW_POSITION;
+};
+
+struct VertexToPixelBasic
+{
+    float4 screenPosition : SV_POSITION; // XYZW position (System Value Position)
+    float2 uv : TEXCOORD;
+    float3 normal : NORMAL;
+    float3 worldPosition : POSITION;
+    float3 tangent : TANGENT;
 };
 
 struct VertexToPixel_Sky

@@ -19,14 +19,28 @@ cbuffer ExternalData : register(b0)
 }
 
 // texture related resources
-Texture2D Albedo          : register(t0); // "t" registers for textures
-Texture2D NormalMap       : register(t1);
-Texture2D RoughnessMap    : register(t2);
-Texture2D MetalnessMap    : register(t3);
-SamplerState BasicSampler : register(s0); // "s" registers for samplers
+Texture2D Albedo                     : register(t0); // "t" registers for textures
+Texture2D NormalMap                  : register(t1);
+Texture2D RoughnessMap               : register(t2);
+Texture2D MetalnessMap               : register(t3);
+Texture2D ShadowMap                  : register(t4);
+SamplerState BasicSampler            : register(s0); // "s" registers for samplers
+SamplerComparisonState ShadowSampler : register(s1);
 
 float4 main(VertexToPixel input) : SV_TARGET
 {
+    // perspective divide
+    input.shadowMapPos /= input.shadowMapPos.w;
+    
+    // convert normalize coords for sampling
+    float2 shadowUV = input.shadowMapPos.xy * 0.5f + 0.5f;
+    shadowUV.y = 1 - shadowUV.y; // flip y
+    
+    // grab distances
+    float distToLight = input.shadowMapPos.z;
+    float shadowAmount = ShadowMap.SampleCmpLevelZero(
+    ShadowSampler, shadowUV, distToLight).r;
+    
 	// adjust uv coords
     input.normal = normalize(input.normal);
     input.uv = input.uv * uvScale + uvOffset;
@@ -72,6 +86,12 @@ float4 main(VertexToPixel input) : SV_TARGET
                     light, input.normal, input.worldPosition, v3CamPos, 
                     roughness, metalness, surfaceColor, specularColor);
                 break;
+        }
+        
+        // If this is the first light, apply the shadowing result
+        if (i == 0)
+        {
+            totalLight *= shadowAmount;
         }
     }
     return float4(pow(totalLight, 1.0f/2.2f), 1);
