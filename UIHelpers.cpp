@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <string>
 #include <format>
-#include <functional>
 
 #include "Window.h"
 #include "Input.h"
