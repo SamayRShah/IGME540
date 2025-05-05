@@ -19,36 +19,51 @@
     <Filter Include="SimpleShader">
       <UniqueIdentifier>{09fbfd1b-d182-4098-a8d4-76c8d6c93f74}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Vertex Shaders">
+      <UniqueIdentifier>{28eb5447-d780-4461-b3c2-87a248df454a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Pixel Shaders">
+      <UniqueIdentifier>{867bae42-86f5-4fe4-8eab-881fadc7ae31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Includes">
+      <UniqueIdentifier>{6a011169-bbb7-431d-b63e-c4a08d9e511e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Pixel Shaders\Post Processing">
+      <UniqueIdentifier>{01be8a0e-8a06-42e9-b72a-55ce23ae7c83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Pixel Shaders\Debug">
+      <UniqueIdentifier>{10cbc83a-c9c2-4c9a-8b55-009389e170d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Pixel Shaders\Misc">
+      <UniqueIdentifier>{55bd58df-28ae-45f7-8b11-eca3876d4187}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Pixel Shaders\Materials">
+      <UniqueIdentifier>{ada69417-6a63-4e15-822d-e2ac7b742b25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Starter">
+      <UniqueIdentifier>{dafd74bd-e7a2-4e7b-98e6-4578663707e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Entity">
+      <UniqueIdentifier>{e729ff49-317d-4442-84b2-5038e4251094}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Scene">
+      <UniqueIdentifier>{2e780203-b824-4cb0-8fd7-e2de909bebc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Misc">
+      <UniqueIdentifier>{86b56786-988b-41a9-a235-5611496197ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Starter">
+      <UniqueIdentifier>{ea74b820-8fab-45f7-893b-a9698d3e38cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Entity">
+      <UniqueIdentifier>{5b62a65e-0409-4f58-8536-cec3257d7695}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scene">
+      <UniqueIdentifier>{0a130b77-6515-4504-a47d-7fbebccfbb4e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PathHelpers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Transform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameEntity.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImGui\imgui.cpp">
@@ -75,47 +90,47 @@
     <ClCompile Include="SimpleShader\SimpleShader.cpp">
       <Filter>SimpleShader</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
+    <ClCompile Include="UIHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics.cpp">
+      <Filter>Source Files\Starter</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Source Files\Starter</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files\Starter</Filter>
+    </ClCompile>
+    <ClCompile Include="PathHelpers.cpp">
+      <Filter>Source Files\Starter</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Source Files\Starter</Filter>
+    </ClCompile>
+    <ClCompile Include="GameEntity.cpp">
+      <Filter>Source Files\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Source Files\Entity</Filter>
+    </ClCompile>
     <ClCompile Include="Sky.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Transform.cpp">
+      <Filter>Source Files\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="LoadingHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PathHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Vertex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BufferStructs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Transform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameEntity.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ImGui\imconfig.h">
       <Filter>ImGui</Filter>
     </ClInclude>
@@ -143,61 +158,106 @@
     <ClInclude Include="SimpleShader\SimpleShader.h">
       <Filter>SimpleShader</Filter>
     </ClInclude>
-    <ClInclude Include="Material.h">
+    <ClInclude Include="Input.h">
+      <Filter>Header Files\Starter</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Window.h">
+      <Filter>Header Files\Starter</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics.h">
+      <Filter>Header Files\Starter</Filter>
+    </ClInclude>
+    <ClInclude Include="PathHelpers.h">
+      <Filter>Header Files\Starter</Filter>
+    </ClInclude>
+    <ClInclude Include="Vertex.h">
+      <Filter>Header Files\Starter</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Header Files\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="GameEntity.h">
+      <Filter>Header Files\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
+      <Filter>Header Files\Entity</Filter>
     </ClInclude>
     <ClInclude Include="Lights.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files\Scene</Filter>
     </ClInclude>
     <ClInclude Include="Sky.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Header Files\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferStructs.h">
+      <Filter>Header Files\Misc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="PixelShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="VertexShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="DebugUVsPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="DebugNormalsPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="SpinShrinkVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="CustomPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="TextureMultiplyPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="DebugLightingPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="SkyVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="SkyPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="PixelShaderPhong.hlsl">
-      <Filter>Shaders</Filter>
+    <FxCompile Include="PostProcessVS.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
     </FxCompile>
     <FxCompile Include="ShadowMapVS.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="SkyVS.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="SpinShrinkVS.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VertexShader.hlsl">
+      <Filter>Shaders\Vertex Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PPBoxBlurPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Post Processing</Filter>
+    </FxCompile>
+    <FxCompile Include="DebugLightingPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Debug</Filter>
+    </FxCompile>
+    <FxCompile Include="DebugNormalsPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Debug</Filter>
+    </FxCompile>
+    <FxCompile Include="DebugUVsPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Debug</Filter>
+    </FxCompile>
+    <FxCompile Include="TextureMultiplyPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Misc</Filter>
+    </FxCompile>
+    <FxCompile Include="CustomPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Misc</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader.hlsl">
+      <Filter>Shaders\Pixel Shaders\Materials</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShaderPhong.hlsl">
+      <Filter>Shaders\Pixel Shaders\Materials</Filter>
+    </FxCompile>
+    <FxCompile Include="SkyPS.hlsl">
+      <Filter>Shaders\Pixel Shaders\Misc</Filter>
+    </FxCompile>
+    <FxCompile Include="PPChromaticAberration.hlsl">
+      <Filter>Shaders\Pixel Shaders\Post Processing</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="ShaderStructs.hlsli">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Includes</Filter>
     </None>
     <None Include="Lighting.hlsli">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Includes</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Readme.txt" />
   </ItemGroup>
 </Project>

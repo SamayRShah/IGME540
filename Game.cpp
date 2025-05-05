@@ -5,16 +5,14 @@
 #include "PathHelpers.h"
 #include "Window.h"
 #include "Lights.h"
+#include "Mesh.h"
+#include "Material.h"
 
 // ImGui & simple shaders includes
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 #include "SimpleShader/SimpleShader.h"
-
-// assignment class includes
-#include "Mesh.h"
-#include "Material.h"
 
 // d3d and std includes
 #include <DirectXMath.h>
@@ -79,6 +77,9 @@ void Game::Initialize()
 		activeCamName = "Main Camera";
 		activeCamera = umCameras[activeCamName];
 	}
+
+	// setup shadow map
+	CreateShadowMapResources();
 }
 
 
@@ -96,126 +97,8 @@ Game::~Game()
 	ImGui::DestroyContext();
 }
 
-// helpers
-	// texture loading helper methods
-void Game::LoadPBRTexture(
-	const std::wstring& name,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srvA,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srvN,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srvR,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srvM
-)
+void Game::CreateShadowMapResources()
 {
-	LoadTexture((L"PBR/" + name + L"_" + L"albedo.png"), srvA);
-	LoadTexture((L"PBR/" + name + L"_" + L"normals.png"), srvN);
-	LoadTexture((L"PBR/" + name + L"_" + L"roughness.png"), srvR);
-	LoadTexture((L"PBR/" + name + L"_" + L"metal.png"), srvM);
-}
-void Game::LoadTexture(
-	const std::wstring& path,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv
-) {
-	const std::wstring& fixedPath = FixPath(L"../../Assets/Textures/" + path);
-	DirectX::CreateWICTextureFromFile(
-		Graphics::Device.Get(), Graphics::Context.Get(),
-		fixedPath.c_str(), nullptr, srv.GetAddressOf());
-	lTextureSRVs.push_back(srv);
-}
-
-
-std::shared_ptr<Mesh> Game::MeshHelper(const char* name) {
-	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>(name, FixPath(std::format("../../Assets/Models/{}.obj", name)).c_str());
-	umMeshes[newMesh->GetName()] = newMesh;
-	return newMesh;
-}
-
-void Game::EntityHelper(
-	const char* name, std::shared_ptr<Mesh> mesh, 
-	std::shared_ptr<Material> mat, XMFLOAT3 translate, XMFLOAT3 scale) {
-	std::shared_ptr<GameEntity> entity = std::make_shared<GameEntity>(name, mesh, mat);
-	entity->GetTransform()->MoveAbsolute(translate);
-	entity->GetTransform()->SetScale(scale);
-	lEntities.push_back(entity);
-}
-
-std::shared_ptr<SimpleVertexShader> Game::VSHelper(const std::wstring & filename) {
-	return std::make_shared<SimpleVertexShader>(Graphics::Device, Graphics::Context, FixPath(filename).c_str());
-}
-
-std::shared_ptr<SimplePixelShader> Game::PSHelper(const std::wstring & filename) {
-	return std::make_shared<SimplePixelShader>(Graphics::Device, Graphics::Context, FixPath(filename).c_str());
-}
-
-std::shared_ptr<Sky> Game::SkyHelper(const char* path, std::shared_ptr<Mesh> cube,
-	std::shared_ptr<SimpleVertexShader> skyVS, std::shared_ptr<SimplePixelShader> skyPS,
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler, XMFLOAT3 ambientColor) {
-
-	std::wstring wPath = std::wstring(path, path + strlen(path));
-	std::shared_ptr<Sky> sky = std::make_shared<Sky>(
-		FixPath(L"../../Assets/Skies/" + wPath + L"/right.png").c_str(),
-		FixPath(L"../../Assets/Skies/" + wPath + L"/left.png").c_str(),
-		FixPath(L"../../Assets/Skies/" + wPath + L"/up.png").c_str(),
-		FixPath(L"../../Assets/Skies/" + wPath + L"/down.png").c_str(),
-		FixPath(L"../../Assets/Skies/" + wPath + L"/front.png").c_str(),
-		FixPath(L"../../Assets/Skies/" + wPath + L"/back.png").c_str(),
-		cube, skyVS, skyPS, sampler);
-	sky->SetAmbientColor(ambientColor);
-	umSkies[path] = sky;
-	return sky;
-}
-
-std::shared_ptr<Material> Game::MatHelperPhong(
-	const char* name,
-	std::shared_ptr<SimpleVertexShader> vs, std::shared_ptr<SimplePixelShader> ps,
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> albedo,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normals
-) {
-	XMFLOAT3 ct = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	std::shared_ptr<Material> mat = std::make_shared<Material>(name, vs, ps, ct, 0.0f);
-	mat->AddSampler("BasicSampler", sampler);
-	mat->AddTextureSRV("Albedo", albedo);
-	mat->AddTextureSRV("NormalMap", normals);
-	umMats[name] = mat;
-	return mat;
-}
-
-std::shared_ptr<Material> Game::MatHelperPBR(
-	const char* name,
-	std::shared_ptr<SimpleVertexShader> vs, std::shared_ptr<SimplePixelShader> ps,
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> albedo,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normals,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metal
-) {
-	XMFLOAT3 ct = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	std::shared_ptr<Material> mat = std::make_shared<Material>(name, vs, ps, ct, 0.0f);
-	mat->AddSampler("BasicSampler", sampler);
-	mat->AddTextureSRV("Albedo", albedo);
-	mat->AddTextureSRV("NormalMap", normals);
-	mat->AddTextureSRV("RoughnessMap", roughness);
-	mat->AddTextureSRV("MetalnessMap", metal);
-	umMats[name] = mat;
-	return mat;
-}
-
-// --------------------------------------------------------
-// Creates the geometry we're going to draw
-// --------------------------------------------------------
-void Game::CreateGeometry()
-{
-	// create sampler state
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
-	D3D11_SAMPLER_DESC dscSampler{};
-	dscSampler .AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	dscSampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	dscSampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	dscSampler.Filter = D3D11_FILTER_ANISOTROPIC;
-	dscSampler.MaxAnisotropy = 16;
-	dscSampler.MaxLOD = D3D11_FLOAT32_MAX;
-	Graphics::Device->CreateSamplerState(&dscSampler, sampler.GetAddressOf());
-
 	// describe and create shadowmap
 	// Create the actual texture that will be the shadow map
 	D3D11_TEXTURE2D_DESC shadowDesc = {};
@@ -270,192 +153,320 @@ void Game::CreateGeometry()
 	shadowSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
 	shadowSampDesc.BorderColor[0] = 1.0f; // Only need the first component
 	Graphics::Device->CreateSamplerState(&shadowSampDesc, &shadowSampler);
+}
 
-	// load textures & normal maps
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobbleA, cobbleN, cobbleR, cobbleM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> floorA, floorN, floorR, floorM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> paintA, paintN, paintR, paintM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> scratchedA, scratchedN, scratchedR, scratchedM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeA, bronzeN, bronzeR, bronzeM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughA, roughN, roughR, roughM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodA, woodN, woodR, woodM;
+// --------------------------------------------------------
+// Creates the geometry we're going to draw
+// --------------------------------------------------------
+void Game::CreateGeometry()
+{
+	// create sampler state
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	D3D11_SAMPLER_DESC dscSampler{};
+	dscSampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	dscSampler.Filter = D3D11_FILTER_ANISOTROPIC;
+	dscSampler.MaxAnisotropy = 16;
+	dscSampler.MaxLOD = D3D11_FLOAT32_MAX;
+	Graphics::Device->CreateSamplerState(&dscSampler, sampler.GetAddressOf());
 
-	LoadPBRTexture(L"cobblestone", cobbleA, cobbleN, cobbleR, cobbleM);
-	LoadPBRTexture(L"floor", floorA, floorN, floorR, floorM);
-	LoadPBRTexture(L"paint", paintA, paintN, paintR, paintM);
-	LoadPBRTexture(L"scratched", scratchedA, scratchedN, scratchedR, scratchedM);
-	LoadPBRTexture(L"bronze", bronzeA, bronzeN, bronzeR, bronzeM);
-	LoadPBRTexture(L"rough", roughA, roughN, roughR, roughM);
-	LoadPBRTexture(L"wood", woodA, woodN, woodR, woodM);
+	// load textures, make entities
+	{
+		// load textures & normal maps
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobbleA, cobbleN, cobbleR, cobbleM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> floorA, floorN, floorR, floorM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> paintA, paintN, paintR, paintM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> scratchedA, scratchedN, scratchedR, scratchedM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeA, bronzeN, bronzeR, bronzeM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughA, roughN, roughR, roughM;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodA, woodN, woodR, woodM;
 
-	// decal texture
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> beansSRV;
-	LoadTexture(L"Base/beans.jpg", beansSRV);
+		LoadPBRTexture(L"cobblestone", cobbleA, cobbleN, cobbleR, cobbleM);
+		LoadPBRTexture(L"floor", floorA, floorN, floorR, floorM);
+		LoadPBRTexture(L"paint", paintA, paintN, paintR, paintM);
+		LoadPBRTexture(L"scratched", scratchedA, scratchedN, scratchedR, scratchedM);
+		LoadPBRTexture(L"bronze", bronzeA, bronzeN, bronzeR, bronzeM);
+		LoadPBRTexture(L"rough", roughA, roughN, roughR, roughM);
+		LoadPBRTexture(L"wood", woodA, woodN, woodR, woodM);
 
-	// flat normals
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> flatNSRV;
-	LoadTexture(L"Base/flat_normals.png", flatNSRV);
+		// decal texture
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> beansSRV;
+		LoadTexture(L"Base/beans.jpg", beansSRV);
 
-	// phong textures with normals
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobblestoneSRV, cobblestoneNSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushionSRV, cushionNSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockSRV, rockNSRV;
-	LoadTexture(L"Base/cobblestone.png", cobblestoneSRV);
-	LoadTexture(L"Base/cushion.png", cushionSRV);
-	LoadTexture(L"Base/rock.png", rockSRV);
-	LoadTexture(L"Base/cobblestone_normals.png", cobblestoneNSRV);
-	LoadTexture(L"Base/cushion_normals.png", cushionNSRV);
-	LoadTexture(L"Base/rock_normals.png", rockNSRV);
+		// flat normals
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> flatNSRV;
+		LoadTexture(L"Base/flat_normals.png", flatNSRV);
 
-	// load meshes
-	std::shared_ptr<Mesh> cube = MeshHelper("cube");
-	std::shared_ptr<Mesh> cylinder = MeshHelper("cylinder");
-	std::shared_ptr<Mesh> helix = MeshHelper("helix");
-	std::shared_ptr<Mesh> sphere = MeshHelper("sphere");
-	std::shared_ptr<Mesh> torus = MeshHelper("torus");
-	std::shared_ptr<Mesh> quad = MeshHelper("quad");
-	std::shared_ptr<Mesh> quad_double_sided = MeshHelper("quad_double_sided");
+		// load meshes
+		std::shared_ptr<Mesh> cube, cylinder, helix, sphere, torus, quad, quad_double_sided;
+		cube = MeshHelper("cube");
+		cylinder = MeshHelper("cylinder");
+		helix = MeshHelper("helix");
+		sphere = MeshHelper("sphere");
+		torus = MeshHelper("torus");
+		quad = MeshHelper("quad");
+		quad_double_sided = MeshHelper("quad_double_sided");
 
-	// load vertex shaders
-	std::shared_ptr<SimpleVertexShader> vs = VSHelper(L"VertexShader.cso");
-	std::shared_ptr<SimpleVertexShader> vsSS = VSHelper(L"SpinShrinkVS.cso");
-	std::shared_ptr<SimpleVertexShader> skyVS = VSHelper(L"SkyVS.cso");
-	shadowVS = std::make_shared<SimpleVertexShader>(Graphics::Device, Graphics::Context, FixPath(L"ShadowMapVS.cso").c_str());
+		// load vertex shaders
+		std::shared_ptr<SimpleVertexShader> vs, vsSS, skyVS;
+		vs = VSHelper(L"VertexShader.cso");
+		vsSS = VSHelper(L"SpinShrinkVS.cso");
+		skyVS = VSHelper(L"SkyVS.cso");
+		shadowVS = std::make_shared<SimpleVertexShader>(Graphics::Device, Graphics::Context, FixPath(L"ShadowMapVS.cso").c_str());
 
-	// load pixel shaders
-	std::shared_ptr<SimplePixelShader> ps = PSHelper(L"PixelShader.cso");
-	std::shared_ptr<SimplePixelShader> psPhong = PSHelper(L"PixelShaderPhong.cso");
-	std::shared_ptr<SimplePixelShader> psDbNs = PSHelper(L"DebugNormalsPS.cso");
-	std::shared_ptr<SimplePixelShader> psDbUVs = PSHelper(L"DebugUVsPS.cso");
-	std::shared_ptr<SimplePixelShader> psDbL = PSHelper(L"DebugLightingPS.cso");
-	std::shared_ptr<SimplePixelShader> psCustom = PSHelper(L"CustomPS.cso");
-	std::shared_ptr<SimplePixelShader> psTexMultiply = PSHelper(L"TextureMultiplyPS.cso");
-	std::shared_ptr<SimplePixelShader> skyPS = PSHelper(L"SkyPS.cso");
+		// load pixel shaders
+		std::shared_ptr<SimplePixelShader> ps, psDbNs, psDbUVs, psDbL, psCustom, psTexMultiply, skyPS;
+		ps = PSHelper(L"PixelShader.cso");
+		psDbNs = PSHelper(L"DebugNormalsPS.cso");
+		psDbUVs = PSHelper(L"DebugUVsPS.cso");
+		psDbL = PSHelper(L"DebugLightingPS.cso");
+		psCustom = PSHelper(L"CustomPS.cso");
+		psTexMultiply = PSHelper(L"TextureMultiplyPS.cso");
+		skyPS = PSHelper(L"SkyPS.cso");
 
-	std::shared_ptr<Material> ndbmat = std::make_shared<Material>("Normals Debug", vs, psDbNs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
-	std::shared_ptr<Material> uvdbmat = std::make_shared<Material>("UV Debug", vs, psDbUVs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
-	std::shared_ptr<Material> ldbmat = std::make_shared<Material>("Lighting Debug", vs, psDbL, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
-	std::shared_ptr<Material> mCustom1 = std::make_shared<Material>("custom", vs, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
-	std::shared_ptr<Material> mCustom2 = std::make_shared<Material>("spinning custom", vsSS, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
-	umMats.insert({
-		{"Normals Debug", ndbmat},
-		{"UV Debug", uvdbmat},
-		{"Lighting Debug", ldbmat},
-		{"custom", mCustom1},
-		{"spinning custom", mCustom2},
-	});
+		std::shared_ptr<Material> ndbmat, uvdbmat, ldbmat, mCustom1, mCustom2;
+		ndbmat = std::make_shared<Material>("Normals Debug", vs, psDbNs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+		uvdbmat = std::make_shared<Material>("UV Debug", vs, psDbUVs, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+		ldbmat = std::make_shared<Material>("Lighting Debug", vs, psDbL, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+		mCustom1 = std::make_shared<Material>("custom", vs, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+		mCustom2 = std::make_shared<Material>("spinning custom", vsSS, psCustom, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.0f);
+		umMats.insert({
+			{"Normals Debug", ndbmat},
+			{"UV Debug", uvdbmat},
+			{"Lighting Debug", ldbmat},
+			{"custom", mCustom1},
+			{"spinning custom", mCustom2},
+			});
 
-	// phong materials
-	std::shared_ptr<Material> mRock = MatHelperPhong("Rock (Phong)", vs, psPhong, sampler, rockSRV, rockNSRV);
-	std::shared_ptr<Material> mCushion = MatHelperPhong("Cushion (Phong)", vs, psPhong, sampler, cushionSRV, cushionNSRV);
-	std::shared_ptr<Material> mCobbleStone = MatHelperPhong("Cobblestone (Phong)", vs, psPhong, sampler, cobblestoneSRV, cobblestoneNSRV);
-	std::shared_ptr<Material> mCobbleDecal = std::make_shared<Material>("Cobble Decal (Phong)", vs, psTexMultiply, XMFLOAT3(1.0f, 1.0f, 1.0f), 0.1f);
-	mCobbleDecal->AddSampler("BasicSampler", sampler);
-	mCobbleDecal->AddTextureSRV("Albedo", cobblestoneSRV);
-	mCobbleDecal->AddTextureSRV("DecalTexture", beansSRV);
-	mCobbleDecal->AddTextureSRV("NormalMap", cobblestoneNSRV);
-	umMats["Cobble Decal (Phong)"] = mCobbleDecal;
+		// pbr materials
+		std::shared_ptr<Material> mCobble, mFloor, mPaint, mScratched, mBronze, mRough, mWood,
+			mCobbleDecal, mFloorDecal, mPaintDecal, mScratchedDecal, mBronzeDecal, mRoughDecal, mWoodDecal;
+		mCobble = MatHelperPBR(
+			"Cobblestone PBR", vs, ps, sampler, cobbleA, cobbleN, cobbleR, cobbleM);
+		mFloor = MatHelperPBR(
+			"Floor PBR", vs, ps, sampler, floorA, floorN, floorR, floorM);
+		mPaint = MatHelperPBR(
+			"Paint PBR", vs, ps, sampler, paintA, paintN, paintR, paintM);
+		mScratched = MatHelperPBR(
+			"Scratched PBR", vs, ps, sampler, scratchedA, scratchedN, scratchedR, scratchedM);
+		mBronze = MatHelperPBR(
+			"Bronze PBR", vs, ps, sampler, bronzeA, bronzeN, bronzeR, bronzeM);
+		mRough = MatHelperPBR(
+			"Rough PBR", vs, ps, sampler, roughA, roughN, roughR, roughM);
+		mWood = MatHelperPBR(
+			"Wood PBR", vs, ps, sampler, woodA, woodN, woodR, woodM);
 
-	// pbr materials
-	std::shared_ptr<Material> mCobble = MatHelperPBR(
-		"Cobblestone PBR", vs, ps, sampler, cobbleA, cobbleN, cobbleR, cobbleM);
-	std::shared_ptr<Material> mFloor = MatHelperPBR(
-		"Floor PBR", vs, ps, sampler, floorA, floorN, floorR, floorM);
-	std::shared_ptr<Material> mPaint = MatHelperPBR(
-		"Paint PBR", vs, ps, sampler, paintA, paintN, paintR, paintM);
-	std::shared_ptr<Material> mScratched = MatHelperPBR(
-		"Scratched PBR", vs, ps, sampler, scratchedA, scratchedN, scratchedR, scratchedM);
-	std::shared_ptr<Material> mBronze = MatHelperPBR(
-		"Bronze PBR", vs, ps, sampler, bronzeA, bronzeN, bronzeR, bronzeM);
-	std::shared_ptr<Material> mRough = MatHelperPBR(
-		"Rough PBR", vs, ps, sampler, roughA, roughN, roughR, roughM);
-	std::shared_ptr<Material> mWood = MatHelperPBR(
-		"Wood PBR", vs, ps, sampler, woodA, woodN, woodR, woodM);
+		mCobbleDecal = MatHelperDecalPBR(
+			"Cobblestone Decal PBR", vs, psTexMultiply, sampler, cobbleA, beansSRV, cobbleN, cobbleR, cobbleM);
+		mFloorDecal = MatHelperDecalPBR(
+			"Floor Decal PBR", vs, psTexMultiply, sampler, floorA, beansSRV, floorN, floorR, floorM);
+		mPaintDecal = MatHelperDecalPBR(
+			"Paint Decal PBR", vs, psTexMultiply, sampler, paintA, beansSRV, paintN, paintR, paintM);
+		mScratchedDecal = MatHelperDecalPBR(
+			"Scratched Decal PBR", vs, psTexMultiply, sampler, scratchedA, beansSRV, scratchedN, scratchedR, scratchedM);
+		mBronzeDecal = MatHelperDecalPBR(
+			"Bronze Decal PBR", vs, psTexMultiply, sampler, bronzeA, beansSRV, bronzeN, bronzeR, bronzeM);
+		mRoughDecal = MatHelperDecalPBR(
+			"Rough Decal PBR", vs, psTexMultiply, sampler, roughA, beansSRV, roughN, roughR, roughM);
+		mWoodDecal = MatHelperDecalPBR(
+			"Wood Decal PBR", vs, psTexMultiply, sampler, woodA, beansSRV, woodN, woodR, woodM);
 
-	// create entities
-	EntityHelper("Sphere1", sphere, mCobble, XMFLOAT3(-9, 0, 0));
-	EntityHelper("Sphere2", sphere, mFloor, XMFLOAT3(-6, 0, 0));
-	EntityHelper("Sphere3", sphere, mPaint, XMFLOAT3(-3, 0, 0));
-	EntityHelper("Sphere4", sphere, mScratched, XMFLOAT3(0, 0, 0));
-	EntityHelper("Sphere5", sphere, mBronze, XMFLOAT3(3, 0, 0));
-	EntityHelper("Sphere6", sphere, mRough, XMFLOAT3(6, 0, 0));
-	EntityHelper("Sphere7", sphere, mWood, XMFLOAT3(9, 0, 0));
-    EntityHelper("Floor", cube, mWood, XMFLOAT3(0, -5, 0), XMFLOAT3(20, 1, 20));
-	// create sky
-	activeSky = SkyHelper("Clouds Blue", cube, skyVS, skyPS, sampler);
-	activeSkyName = "Clouds Blue";
-	SkyHelper("Clouds Pink", cube, skyVS, skyPS, sampler, XMFLOAT3(0.30f, 0.14f, 0.19f));
-	SkyHelper("Cold Sunset", cube, skyVS, skyPS, sampler, XMFLOAT3(0.141f, 0.141f, 0.224f));
-	SkyHelper("Planet", cube, skyVS, skyPS, sampler, XMFLOAT3(0.08f, 0.02f, 0.02f));
-	umSkies["No Sky"] = nullptr;
+		// create entities
+		EntityHelper("Sphere1", sphere, mCobble, XMFLOAT3(-9, 0, 0));
+		EntityHelper("Sphere2", sphere, mFloor, XMFLOAT3(-6, 0, 0));
+		EntityHelper("Sphere3", sphere, mPaint, XMFLOAT3(-3, 0, 0));
+		EntityHelper("Sphere4", sphere, mScratched, XMFLOAT3(0, 0, 0));
+		EntityHelper("Sphere5", sphere, mBronze, XMFLOAT3(3, 0, 0));
+		EntityHelper("Sphere6", sphere, mRough, XMFLOAT3(6, 0, 0));
+		EntityHelper("Sphere7", sphere, mWood, XMFLOAT3(9, 0, 0));
+		EntityHelper("Sphere8", sphere, mCobbleDecal, XMFLOAT3(-9, 3, 0));
+		EntityHelper("Sphere9", sphere, mFloorDecal, XMFLOAT3(-6, 3, 0));
+		EntityHelper("Sphere10", sphere, mPaintDecal, XMFLOAT3(-3, 3, 0));
+		EntityHelper("Sphere11", sphere, mScratchedDecal, XMFLOAT3(0, 3, 0));
+		EntityHelper("Sphere12", sphere, mBronzeDecal, XMFLOAT3(3, 3, 0));
+		EntityHelper("Sphere13", sphere, mRoughDecal, XMFLOAT3(6, 3, 0));
+		EntityHelper("Sphere14", sphere, mWoodDecal, XMFLOAT3(9, 3, 0));
+		EntityHelper("Floor", cube, mWood, XMFLOAT3(0, -5, 0), XMFLOAT3(20, 1, 20));
 
-	// create lights & set bg and ambient colors
-	bgColor = XMFLOAT3(0, 0, 0);
-	ambientColor = XMFLOAT3(0.1f, 0.15f, 0.18f);
+		// create sky
+		umSkies["No Sky"] = nullptr;
+		activeSky = SkyHelper("Clouds Blue", cube, skyVS, skyPS, sampler);
+		activeSkyName = "Clouds Blue";
+		SkyHelper("Clouds Pink", cube, skyVS, skyPS, sampler);
+		SkyHelper("Cold Sunset", cube, skyVS, skyPS, sampler);
+		SkyHelper("Planet", cube, skyVS, skyPS, sampler);
+	}
 
-	Light dl1= {};
-	dl1.Color = XMFLOAT3(1, 0, 0);
-	dl1.Type = LIGHT_TYPE_DIRECTIONAL;
-	dl1.Intensity = 1;
-	dl1.Direction = XMFLOAT3(1, 0, 0);
-	// lights.push_back(dl1);
+	{
+		//
+	}
 
-	Light dl2 = {};
-	dl2.Color = XMFLOAT3(1, 1, 1);
-	dl2.Type = LIGHT_TYPE_DIRECTIONAL;
-	dl2.Intensity = 1;
-	dl2.Direction = XMFLOAT3(0, -1, 0);
-	lights.push_back(dl2);
+	// lights setup
+	{
+		bgColor = XMFLOAT3(0, 0, 0);
 
-	XMVECTOR lightDir = XMVectorSet(0, -1, 0, 0);
-	XMVECTOR lightPos = XMVectorScale(lightDir, -15.0f);
-	// store direction and projection for the light
-	XMMATRIX lightView = XMMatrixLookToLH(
-		lightPos, // Position: "Backing up" 20 units from origin
-		lightDir, // Direction: light's direction
-		XMVectorSet(0, 0, 1, 0)); // Up: World up vector (Y axis)
-	XMStoreFloat4x4(&lightViewMatrix, lightView);
+		Light dl1 = {};
+		dl1.Color = XMFLOAT3(1, 1, 1);
+		dl1.Type = LIGHT_TYPE_DIRECTIONAL;
+		dl1.Intensity = 1;
+		dl1.Direction = XMFLOAT3(0, -1.0f, 0);
+		dl1.Position = XMFLOAT3(0, -15.0f, 0);
+		lights.push_back(dl1);
 
+		XMVECTOR lightDir = XMVector3Normalize(XMLoadFloat3(&dl1.Direction));
+		XMVECTOR lightPos = XMVectorScale(lightDir, slDistance);
+		// store direction and projection for the light
+		XMMATRIX lightView = XMMatrixLookToLH(
+			lightPos,
+			lightDir,
+			XMVector3Normalize(XMLoadFloat3(&slUpDir))); // Up: World up vector (Z axis for looking straight down)
+		XMStoreFloat4x4(&lightViewMatrix, lightView);
+		XMMATRIX lightProjection = XMMatrixOrthographicLH(
+			lightProjectionSize,
+			lightProjectionSize,
+			1.0f,
+			100.0f);
+		XMStoreFloat4x4(&lightProjectionMatrix, lightProjection);
+
+		Light dl2 = {};
+		dl2.Color = XMFLOAT3(1, 0, 0);
+		dl2.Type = LIGHT_TYPE_DIRECTIONAL;
+		dl2.Intensity = 1;
+		dl2.Direction = XMFLOAT3(1, 0, 0);
+		lights.push_back(dl2);
+
+		Light dl3 = {};
+		dl3.Color = XMFLOAT3(0, 0, 1);
+		dl3.Type = LIGHT_TYPE_DIRECTIONAL;
+		dl3.Intensity = 1;
+		dl3.Direction = XMFLOAT3(0, 0, 1);
+		lights.push_back(dl3);
+
+		Light pl1 = {};
+		pl1.Color = XMFLOAT3(1, 1, 1);
+		pl1.Type = LIGHT_TYPE_POINT;
+		pl1.Intensity = 1;
+		pl1.Position = XMFLOAT3(15, 5, 0);
+		pl1.Range = 15;
+		lights.push_back(pl1);
+
+		Light pl2 = {};
+		pl2.Color = XMFLOAT3(1, 1, 1);
+		pl2.Type = LIGHT_TYPE_POINT;
+		pl2.Intensity = 1;
+		pl2.Position = XMFLOAT3(-15, 5, 0);
+		pl2.Range = 15;
+		lights.push_back(pl2);
+
+		Light sl1 = {};
+		sl1.Color = XMFLOAT3(1, 1, 0);
+		sl1.Type = LIGHT_TYPE_SPOT;
+		sl1.Intensity = 2;
+		sl1.Position = XMFLOAT3(0, 5, 0);
+		sl1.Direction = XMFLOAT3(0, -1, 0);
+		sl1.Range = 15;
+		sl1.SpotInnerAngle = XMConvertToRadians(20);
+		sl1.SpotOuterAngle = XMConvertToRadians(30);
+		lights.push_back(sl1);
+	}
+
+	// post process setup
+	{
+
+		// set post process vs/ps
+		ppVS = VSHelper(L"PostProcessVS.cso");
+		ppBlurPS = PSHelper(L"PPBoxBlurPS.cso");
+		ppChromaticPS = PSHelper(L"PPChromaticAberration.cso");
+
+		// post process sampler
+		D3D11_SAMPLER_DESC ppSampDesc = {};
+		ppSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		ppSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		Graphics::Device->CreateSamplerState(&ppSampDesc, ppSampler.GetAddressOf());
+
+		// Create the Render Target View
+		ResizePostProcessResources();
+	}
+}
+
+// helper to resize shadow map
+void Game::ResizeShadowMap() {
 	XMMATRIX lightProjection = XMMatrixOrthographicLH(
 		lightProjectionSize,
 		lightProjectionSize,
 		1.0f,
 		100.0f);
 	XMStoreFloat4x4(&lightProjectionMatrix, lightProjection);
+}
 
-	Light dl3 = {};
-	dl3.Color = XMFLOAT3(0, 0, 1);
-	dl3.Type = LIGHT_TYPE_DIRECTIONAL;
-	dl3.Intensity = 1;
-	dl3.Direction = XMFLOAT3(0, 0, 1);
-	// lights.push_back(dl3);
+void Game::EditShadowMapLight(Light light, float distance) {
+	XMVECTOR lightDir = XMVector3Normalize(XMLoadFloat3(&light.Direction));
+	XMVECTOR lightPos = XMVectorScale(lightDir, distance);
+	XMMATRIX lightView = XMMatrixLookToLH(
+		lightPos, // Position: "Backing up" 20 units from origin
+		lightDir, // Direction: light's direction
+		XMVector3Normalize(XMLoadFloat3(&slUpDir)));
+	XMStoreFloat4x4(&lightViewMatrix, lightView);
+}
 
-	Light pl1 = {};
-	pl1.Color = XMFLOAT3(1, 1, 1);
-	pl1.Type = LIGHT_TYPE_POINT;
-	pl1.Intensity = 1;
-	pl1.Position = XMFLOAT3(15, 5, 0);
-	pl1.Range = 15;
-	// lights.push_back(pl1);
+// helper to resize render targets
+void Game::ResizePostProcessResources()
+{
+	ppBlurSRV.Reset();
+	ppBlurRTV.Reset();
+	ppChromaticSRV.Reset();
+	ppChromaticRTV.Reset();
 
-	Light pl2 = {};
-	pl2.Color = XMFLOAT3(1, 1, 1);
-	pl2.Type = LIGHT_TYPE_POINT;
-	pl2.Intensity = 1;
-	pl2.Position = XMFLOAT3(-15, 5, 0);
-	pl2.Range = 15;
-	// lights.push_back(pl2);
+	// resize render target
+	// Describe the texture we're creating
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = Window::Width();
+	textureDesc.Height = Window::Height();
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	Light sl1 = {};
-	sl1.Color = XMFLOAT3(1, 1, 0);
-	sl1.Type = LIGHT_TYPE_SPOT;
-	sl1.Intensity = 2;
-	sl1.Position = XMFLOAT3(0, 5, 0);
-	sl1.Direction = XMFLOAT3(0, -1, 0);
-	sl1.Range = 15;
-	sl1.SpotInnerAngle = XMConvertToRadians(20);
-	sl1.SpotOuterAngle = XMConvertToRadians(30);
-	// lights.push_back(sl1);
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexBlur;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexChromatic;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexChromaticOutput;
+
+	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexBlur.GetAddressOf());
+	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexChromatic.GetAddressOf());
+	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexChromaticOutput.GetAddressOf());
+
+	// Create the Render Target View
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	Graphics::Device->CreateRenderTargetView(
+		ppTexBlur.Get(),
+		&rtvDesc,
+		ppBlurRTV.ReleaseAndGetAddressOf());
+	Graphics::Device->CreateRenderTargetView(
+		ppTexChromatic.Get(),
+		&rtvDesc,
+		ppChromaticRTV.ReleaseAndGetAddressOf());
+
+	// Create the Shader Resource View
+	Graphics::Device->CreateShaderResourceView(
+		ppTexBlur.Get(),
+		0,
+		ppBlurSRV.ReleaseAndGetAddressOf());
+	Graphics::Device->CreateShaderResourceView(
+		ppTexChromatic.Get(),
+		0,
+		ppChromaticSRV.ReleaseAndGetAddressOf());
 }
 
 // --------------------------------------------------------
@@ -465,6 +476,8 @@ void Game::CreateGeometry()
 void Game::OnResize()
 {
 	if (activeCamera) activeCamera->UpdateProjectionMatrix(Window::AspectRatio());
+	if (Graphics::Device) ResizePostProcessResources();
+	rtHeight = rtWidth / Window::AspectRatio();
 }
 
 
@@ -497,8 +510,8 @@ void Game::Draw(float dt, float tt)
 		ID3D11ShaderResourceView* nullSRVs[128] = {};
 		Graphics::Context->PSSetShaderResources(0, 128, nullSRVs);
 
-		// Clear the back buffer (erase what's on screen) and depth buffer
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	reinterpret_cast<float*>(&bgColor));
+		// Clear buffers (erase what's on screen)
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(), reinterpret_cast<float*>(&bgColor));
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
@@ -506,7 +519,7 @@ void Game::Draw(float dt, float tt)
 	{
 		// set render state
 		Graphics::Context->RSSetState(shadowRasterizer.Get());
-		
+
 		// clear depth stencil
 		Graphics::Context->ClearDepthStencilView(shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -546,33 +559,92 @@ void Game::Draw(float dt, float tt)
 			Graphics::DepthBufferDSV.Get());
 		Graphics::Context->RSSetState(0);
 	}
-	
 
-	// draw meshes
-	for (size_t i = 0; i < lEntities.size(); i++) {
-		std::shared_ptr<SimpleVertexShader> vs = lEntities[i]->GetMaterial()->GetVertexShader();
-		vs->SetMatrix4x4("mViewLight", lightViewMatrix);
-		vs->SetMatrix4x4("mProjLight", lightProjectionMatrix);
+	// pre rendering
+	{
+		// Clear post processing buffers
+		Graphics::Context->ClearRenderTargetView(ppBlurRTV.Get(), reinterpret_cast<float*>(&bgColor));
+		Graphics::Context->ClearRenderTargetView(ppChromaticRTV.Get(), reinterpret_cast<float*>(&bgColor));
 
-		std::shared_ptr<SimplePixelShader> ps = lEntities[i]->GetMaterial()->GetPixelShader();
-		ps->SetData(
-			"lights", // The name of the (temporary) variable in the shader
-			&lights[0], // The address of the data to set
-			sizeof(Light) * (int)lights.size()); // The size of the data (the whole struct!) to set
-		ps->SetInt("nLights", (int)lights.size());
-		ps->SetFloat3("ambient", ambientColor);
-		ps->SetShaderResourceView("ShadowMap", shadowSRV);
-		ps->SetSamplerState("ShadowSampler", shadowSampler);
-		lEntities[i]->Draw(activeCamera, dt, tt);
+		// set 1st process as render target
+		Graphics::Context->OMSetRenderTargets(1, ppBlurRTV.GetAddressOf(), Graphics::DepthBufferDSV.Get());
 	}
 
-	// draw sky
-	if(activeSky != nullptr)
-		activeSky->Draw(activeCamera);
+	// render
+	{
+		// draw meshes
+		for (size_t i = 0; i < lEntities.size(); i++) {
+			std::shared_ptr<SimpleVertexShader> vs = lEntities[i]->GetMaterial()->GetVertexShader();
+			vs->SetMatrix4x4("mViewLight", lightViewMatrix);
+			vs->SetMatrix4x4("mProjLight", lightProjectionMatrix);
 
-	// prepare ImGui buffers
-	ImGui::Render(); // Turns this frame’s UI into renderable triangles
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // Draws it to the screen
+			std::shared_ptr<SimplePixelShader> ps = lEntities[i]->GetMaterial()->GetPixelShader();
+			ps->SetData(
+				"lights", // The name of the (temporary) variable in the shader
+				&lights[0], // The address of the data to set
+				sizeof(Light) * (int)lights.size()); // The size of the data (the whole struct!) to set
+			ps->SetInt("nLights", (int)lights.size());
+			ps->SetShaderResourceView("ShadowMap", shadowSRV);
+			ps->SetSamplerState("ShadowSampler", shadowSampler);
+			lEntities[i]->Draw(activeCamera, dt, tt);
+		}
+
+		// draw sky
+		if (activeSky != nullptr) {
+			if (activeCamera->GetProjectionType() == CameraProjectionType::Orthographic) {
+				activeCamera->SetProjectionType(CameraProjectionType::Perspective);
+				activeSky->Draw(activeCamera);
+				activeCamera->SetProjectionType(CameraProjectionType::Orthographic);
+			}
+			else {
+				activeSky->Draw(activeCamera);
+			}
+			//activeSky->Draw(activeCamera);
+		}
+	}
+
+	// post processing
+	{
+		// Set back buffer to next PP and activate vert shader
+		Graphics::Context->OMSetRenderTargets(1, ppChromaticRTV.GetAddressOf(), 0);
+		ppVS->SetShader();
+
+		// blur
+		{
+			// set resources
+			ppBlurPS->SetShader();
+			ppBlurPS->SetInt("blurRadius", ppBlurRadius);
+			ppBlurPS->SetFloat("pixelWidth", 1.0f / (float)Window::Width());
+			ppBlurPS->SetFloat("PixelHeight", 1.0f / (float)Window::Height());
+			ppBlurPS->SetShaderResourceView("Pixels", ppBlurSRV.Get());
+			ppBlurPS->SetSamplerState("ClampSampler", ppSampler.Get());
+			ppBlurPS->CopyAllBufferData();
+			Graphics::Context->Draw(3, 0);
+		}
+
+		// chromatic aberration
+		{
+			// set back buffer
+			Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+			
+			// set resources
+			ppChromaticPS->SetShader();
+			ppChromaticPS->SetFloat3("offsets", ppChromaticOffsets);
+			ppChromaticPS->SetFloat2("mousePos", XMFLOAT2((float)Input::GetMouseX(), (float)Input::GetMouseY()));
+			ppChromaticPS->SetFloat2("textureSize", XMFLOAT2((float)Window::Width(), (float)Window::Height()));
+			ppChromaticPS->SetShaderResourceView("Pixels", ppChromaticSRV.Get());
+			ppChromaticPS->SetSamplerState("ClampSampler", ppSampler.Get());
+			ppChromaticPS->CopyAllBufferData();
+			Graphics::Context->Draw(3, 0);
+		}
+	}
+
+	// UI at the end
+	{
+		// prepare ImGui buffers
+		ImGui::Render(); // Turns this frame’s UI into renderable triangles
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // Draws it to the screen
+	}
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
@@ -592,437 +664,6 @@ void Game::Draw(float dt, float tt)
 	}
 }
 
-// --------------------------------------------------------
-// Prepare new frame for the UI
-// --------------------------------------------------------
-void Game::UINewFrame(float deltaTime) {
 
-	// Feed fresh data to ImGui
-	ImGuiIO& io = ImGui::GetIO();
-	io.DeltaTime = deltaTime;
-	io.DisplaySize.x = (float)Window::Width();
-	io.DisplaySize.y = (float)Window::Height();
-
-	// Reset the frame
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	// Determine new input capture
-	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
-	Input::SetMouseCapture(io.WantCaptureMouse);
-}
-
-// --------------------------------------------------------
-// Build UI for the current frame
-// --------------------------------------------------------
-void Game::BuildUI() {
-	if (showUIDemoWindow) {
-		ImGui::ShowDemoWindow();
-	}
-
-	// Open/create custom window
-	ImGui::Begin("Inspector");
-	{
-		if (ImGui::TreeNode("App Details"))
-		{
-			// show frame rate and window size
-			ImGui::Text("Frame rate: %f fps", ImGui::GetIO().Framerate);
-			ImGui::Text("Window Client Size: %dx%d", Window::Width(), Window::Height());
-
-			// 'close' tree node
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("UI Options"))
-		{
-			ImGui::Text("UI Style:");
-			{
-				if (ImGui::Button("Classic"))
-					ImGui::StyleColorsClassic();
-				ImGui::SameLine();
-				if (ImGui::Button("Light"))
-					ImGui::StyleColorsLight();
-				ImGui::SameLine();
-				if (ImGui::Button("Dark"))
-					ImGui::StyleColorsDark();
-			}
-
-			if (ImGui::Button(showUIDemoWindow ? "Hide ImGui Demo Window" : "Show ImGui Demo Window"))
-				showUIDemoWindow = !showUIDemoWindow;
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("World Properties"))
-		{
-			ImGui::ColorEdit3("Bg Color", reinterpret_cast<float*>(&bgColor));
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Sky Box")) 
-		{
-			// drop down select for cameras
-			// make input width smaller
-			float width = ImGui::CalcItemWidth();
-			ImGui::SetNextItemWidth(width * 3.0f / 4.0f);
-			if (ImGui::BeginCombo("Active Sky", activeSkyName.c_str())) {
-				// loop through cameras map
-				for (const auto& [name, sky] : umSkies) {
-					bool selected = (activeSkyName == name);
-					if (ImGui::Selectable(name.c_str(), selected)) {
-						activeSkyName = name;
-						activeSky = sky;
-						if (activeSky != nullptr) {
-							ambientColor = sky->GetAmbientColor();
-						}
-						else {
-							ambientColor = bgColor;
-						}
-					}
-					if (selected) {
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
-
-			XMFLOAT3 ambient = (activeSky != nullptr) ? activeSky->GetAmbientColor() : ambientColor;
-			if (ImGui::ColorPicker3("Ambient Color", reinterpret_cast<float*>(&ambient))) {
-				if(activeSky != nullptr)
-					activeSky->SetAmbientColor(ambient);
-				ambientColor = ambient;
-			}
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode(std::format("Lights ({})", (int)lights.size()).c_str())) {
-			// Array of light type labels
-			const char* lightTypeItems[] = { "Directional", "Point", "Spot" };
-			for (size_t i = 0; i < lights.size(); i++) {
-				Light* light = &lights[i];
-				int lightType = light->Type;
-				if (ImGui::TreeNode(std::format("light [{}] ({})", i, lightTypeItems[lightType]).c_str())) {
-					// styling width
-					float width = ImGui::CalcItemWidth();
-					ImGui::PushItemWidth(width * 4.0f / 5.0f);
-					// ComboBox to select light type
-					if (ImGui::Combo("Light Type", &lightType, lightTypeItems, IM_ARRAYSIZE(lightTypeItems))) {
-						// Update the light type in your Light object
-						light->Type = lightType;
-					}
-
-					// Drag Float Inputs for Light Properties
-					ImGui::ColorEdit3("Color", reinterpret_cast<float*>(&light->Color));
-					ImGui::DragFloat3("Position", reinterpret_cast<float*>(&light->Position), 0.1f, -FLT_MAX, FLT_MAX, "%.2f");
-					ImGui::DragFloat3("Direction", reinterpret_cast<float*>(&light->Direction), 0.1f, -1.0f, 1.0f, "%.2f");
-					ImGui::DragFloat("Range", &light->Range, 0.1f, 0.0f, FLT_MAX, "%.2f");
-					ImGui::DragFloat("Intensity", &light->Intensity, 0.1f, 0.0f, FLT_MAX, "%.2f");
-
-					// float input for inner/outer angles in degrees
-					float sIA = XMConvertToDegrees(light->SpotInnerAngle);
-					float sOA = XMConvertToDegrees(light->SpotOuterAngle);
-					if (ImGui::DragFloat("Spot Inner Angle", &sIA, 0.1f, 0.0f, 90.0f, "%.2f")) {
-						light->SpotInnerAngle = XMConvertToRadians(sIA);
-					}
-					if (ImGui::DragFloat("Spot Outer Angle", &sOA, 0.1f, 0.0f, 90.0f, "%.2f")) {
-						light->SpotOuterAngle = XMConvertToRadians(sOA);
-					}
-
-					ImGui::DragFloat2("Padding", reinterpret_cast<float*>(&light->Padding), 0.01f, 0.0f, 1.0f, "%.2f");
-					ImGui::PopItemWidth();
-
-					ImGui::TreePop();
-				}
-			}
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Shadow Map")) {
-			ImGui::Image(reinterpret_cast<ImTextureID>(shadowSRV.Get()), ImVec2(256, 256));
-			ImGui::TreePop();
-		}
-
-		// camera ui
-		if (ImGui::TreeNode("Camera")) {
-			
-			// drop down select for cameras
-			// make input width smaller
-			float width = ImGui::CalcItemWidth();
-			ImGui::SetNextItemWidth(width * 3.0f / 4.0f);
-			if (ImGui::BeginCombo("Active Camera", activeCamName.c_str())) {
-				// loop through cameras map
-				for (const auto& [name, cam] : umCameras) {
-					bool selected = (activeCamName == name);
-					if (ImGui::Selectable(name.c_str(), selected)) {
-						activeCamName = name;
-						activeCamera = cam;
-					}
-					if (selected) {
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
-
-			// interact with transform
-			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-			if (ImGui::TreeNode("Transform")) {
-				Transform& tCam = *activeCamera->GetTransform();
-				XMFLOAT3 pos = tCam.GetPosition();
-				if (ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
-					tCam.SetPosition(pos);
-				}
-				XMFLOAT3 rotation = tCam.GetRotation();
-				rotation.x = XMConvertToDegrees(rotation.x);
-				rotation.y = XMConvertToDegrees(rotation.y);
-				rotation.z = XMConvertToDegrees(rotation.z);
-				if (ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -360.0f, 360.0f, "%.3f")) {
-					tCam.SetRotation(XMConvertToRadians(rotation.x), 
-						XMConvertToRadians(rotation.y), 
-						XMConvertToRadians(rotation.z));
-				}
-				ImGui::TreePop();
-			}
-
-			// interact with setters
-			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-			if (ImGui::TreeNode("Camera options")) {
-				
-				// make input width smaller
-				float width = ImGui::CalcItemWidth();
-				ImGui::PushItemWidth(width * 2.0f/3.0f);
-				float aspectRatio = activeCamera->GetAspectRatio();
-				if (ImGui::DragFloat("Aspect Ratio", &aspectRatio, 0.01f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetAspectRatio(aspectRatio);
-				}
-				float fov = XMConvertToDegrees(activeCamera->GetFOV());
-				if (ImGui::DragFloat("FOV", &fov, 1.0f, XMConvertToDegrees(0.01f), 360)) {
-					activeCamera->SetFOV(XMConvertToRadians(fov));
-				}
-				float orthoWidth = activeCamera->GetOrthoWidth();
-				if (ImGui::DragFloat("Ortho Width", &orthoWidth, 1.0f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetOrthoWidth(orthoWidth);
-				}
-				float nearClip = activeCamera->GetNearClip();
-				if (ImGui::DragFloat("Near Clip", &nearClip, 0.001f, 0.001f, FLT_MAX)) {
-					activeCamera->SetNearClip(nearClip);
-				}
-				float farClip = activeCamera->GetFarClip();
-				if (ImGui::DragFloat("Far Clip", &farClip, 1.0f, nearClip, FLT_MAX)) {
-					activeCamera->SetFarClip(farClip);
-				}
-				float moveSpeed = activeCamera->GetMoveSpeed();
-				if (ImGui::DragFloat("Move Speed", &moveSpeed, 0.1f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetMoveSpeed(moveSpeed);
-				}
-				float lookSpeed = activeCamera->GetLookSpeed();
-				if (ImGui::DragFloat("Look Speed", &lookSpeed, 0.01f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetLookSpeed(lookSpeed);
-				}
-				float moveFactor = activeCamera->GetMoveFactor();
-				if (ImGui::DragFloat("Move Factor", &moveFactor, 0.1f, -FLT_MAX, FLT_MAX)) {
-					activeCamera->SetMoveFactor(moveFactor);
-				}
-
-				// Projection Type Dropdown
-				const char* projectionTypes[] = { "Perspective", "Orthographic" };
-				int currentProjection = static_cast<int>(activeCamera->GetProjectionType());
-
-				if (ImGui::Combo("Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE(projectionTypes))) {
-					activeCamera->SetProjectionType(static_cast<CameraProjectionType>(currentProjection));
-				}
-				ImGui::PopItemWidth();
-				ImGui::TreePop();
-			}
-			ImGui::TreePop();
-		}
-
-		// materials ui
-		if (ImGui::TreeNode("Materials")) {
-			for (const auto& [name, mat] : umMats) {
-				if (ImGui::TreeNode(mat->GetName())) {
-					// textures
-					if (ImGui::TreeNode("Textures")) {
-						const auto& textureMap = mat->GetTextureSRVMap();
-						if (textureMap.empty()) {
-							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
-							ImGui::Text("No texture"); // Use a helper function for italics
-							ImGui::PopStyleColor();
-						}
-						else {
-							for (const auto& [name, texture] : textureMap) {
-								ImGui::Text("%s", name.c_str());
-								ImGui::Image(reinterpret_cast<ImTextureID>(texture.Get()), ImVec2(64, 64));
-
-								std::string comboId = "##combo_" + name;
-								// Show combo with placeholder names
-								std::string previewLabel = "Replace " + name;
-								int selectedIndex = -1;
-								if (ImGui::BeginCombo(comboId.c_str(), previewLabel.c_str())) {
-									for (int i = 0; i < lTextureSRVs.size(); ++i) {
-										ImGui::PushID(i); // Unique ID for each item
-
-										// selectable group to pick textrure
-										ImGui::BeginGroup();
-										ImGui::Image(reinterpret_cast<ImTextureID>(lTextureSRVs[i].Get()), ImVec2(64, 64));
-										ImGui::SameLine();
-
-										// Texture index as label
-										std::string label = "Texture " + std::to_string(i);
-										bool isSelected = (selectedIndex == i);
-										if (ImGui::Selectable(label.c_str(), isSelected, 0, ImVec2(100, 64))) {
-											selectedIndex = i;
-											mat->ReplaceTextureSRV(name, lTextureSRVs[i]);
-										}
-
-										if (isSelected)
-											ImGui::SetItemDefaultFocus();
-
-										ImGui::EndGroup();
-										ImGui::PopID();
-									}
-									ImGui::EndCombo();
-								}
-							}
-						}
-						ImGui::TreePop();
-					}
-					// color tint setter
-					XMFLOAT3 colorTint = mat->GetColorTint();
-					if (ImGui::ColorEdit3("Color Tint", reinterpret_cast<float*>(&colorTint))) {
-						mat->SetColorTint(colorTint);
-					}
-					// uv setters
-					XMFLOAT2 uvScale = mat->GetUvScale();
-					if (ImGui::DragFloat2("uv scale", reinterpret_cast<float*>(&uvScale), 0.1f)) {
-						mat->SetUvScale(uvScale);
-					}
-					XMFLOAT2 uvOffset = mat->GetUvOffset();
-					if (ImGui::DragFloat2("uv offset", reinterpret_cast<float*>(&uvOffset), 0.1f)) {
-						mat->SetUvOffset(uvOffset);
-					}
-					ImGui::TreePop();
-				}
-			}
-			ImGui::TreePop();
-		}
-		
-		// mesh ui
-		if (ImGui::TreeNode("Entities")) {
-			for (size_t i = 0; i < lEntities.size(); i++) {
-				// get address for entity, mesh, and transform
-				GameEntity& targetEntity = *lEntities[i].get();
-				Mesh& targetMesh = *targetEntity.GetMesh().get();
-				Transform& targetTransform = *targetEntity.GetTransform().get();
-				Material& targetMat = *targetEntity.GetMaterial().get();
-
-				ImGui::PushID(static_cast<UINT>(i));
-				if (ImGui::TreeNode(targetEntity.GetName())) {
-					if (ImGui::TreeNode(std::format("Mesh: {}", targetMesh.GetName()).c_str())) {
-						// style width
-						float width = ImGui::CalcItemWidth();
-						ImGui::SetNextItemWidth(width * 3.0f / 4.0f);
-						if (ImGui::BeginCombo("Mesh", targetMesh.GetName())) {
-							// loop through meshes map
-							for (const auto& [name, mesh] : umMeshes) {
-								bool selected = (targetMat.GetName() == name);
-								if (ImGui::Selectable(name.c_str(), selected)) {
-									targetEntity.SetMesh(mesh);
-								}
-								if (selected) {
-									ImGui::SetItemDefaultFocus();
-								}
-							}
-							ImGui::EndCombo();
-						}
-						ImGui::Text("triangles: %d", targetMesh.GetTriCount());
-						ImGui::Text("vertices: %d", targetMesh.GetVertexCount());
-						ImGui::Text("indices: %d", targetMesh.GetIndexCount());
-						ImGui::TreePop();
-					}
-					if (ImGui::TreeNode(std::format("Material: {}", targetMat.GetName()).c_str())) {
-						// style width
-						float width = ImGui::CalcItemWidth();
-						ImGui::PushItemWidth(width * 3.0f / 4.0f);
-						if (ImGui::BeginCombo("Material", targetMat.GetName())) {
-							// loop through cameras map
-							for (const auto& [name, mat] : umMats) {
-								bool selected = (targetMat.GetName() == name);
-								if (ImGui::Selectable(name.c_str(), selected)) {
-									targetEntity.SetMaterial(mat);
-								}
-								if (selected) {
-									ImGui::SetItemDefaultFocus();
-								}
-							}
-							ImGui::EndCombo();
-						}
-						// textures
-						if (ImGui::TreeNode("Textures")) {
-							const auto& textureMap = targetMat.GetTextureSRVMap();
-							if (textureMap.empty()) {
-								ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-								ImGui::Text("No texture");
-								ImGui::PopStyleColor();
-							}
-							else {
-								for (const auto& [name, texture] : textureMap) {
-									ImGui::Text("%s", name.c_str());
-									ImGui::Image(reinterpret_cast<ImTextureID>(texture.Get()), ImVec2(64, 64));
-								}
-							}
-							ImGui::TreePop();
-						}
-						// color tint setter
-						XMFLOAT3 colorTint = targetMat.GetColorTint();
-						if (ImGui::ColorEdit3("Color Tint", reinterpret_cast<float*>(&colorTint))) {
-							targetMat.SetColorTint(colorTint);
-						}
-						// uv setters
-						XMFLOAT2 uvScale = targetMat.GetUvScale();
-						if (ImGui::DragFloat2("uv scale", reinterpret_cast<float*>(&uvScale), 0.1f)) {
-							targetMat.SetUvScale(uvScale);
-						}
-						XMFLOAT2 uvOffset = targetMat.GetUvOffset();
-						if (ImGui::DragFloat2("uv offset", reinterpret_cast<float*>(&uvOffset), 0.1f)) {
-							targetMat.SetUvOffset(uvOffset);
-						}
-						ImGui::PopItemWidth();
-						ImGui::TreePop();
-					}
-					if (ImGui::TreeNode("Transform:")) {
-						// transform setters
-						XMFLOAT3 pos = targetTransform.GetPosition();
-						if (ImGui::DragFloat3("Position", reinterpret_cast<float*>(&pos), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
-							targetTransform.SetPosition(pos);
-						}
-						XMFLOAT3 rotation = targetTransform.GetRotation();
-						rotation.x = XMConvertToDegrees(rotation.x);
-						rotation.y = XMConvertToDegrees(rotation.y);
-						rotation.z = XMConvertToDegrees(rotation.z);
-						if (ImGui::DragFloat3("Rotation", reinterpret_cast<float*>(&rotation), 0.1f, -360.0f, 360.0f, "%.3f")) {
-							targetTransform.SetRotation(
-								XMConvertToRadians(rotation.x),
-								XMConvertToRadians(rotation.y),
-								XMConvertToRadians(rotation.z));
-						}
-						XMFLOAT3 scale = targetTransform.GetScale();
-						if (ImGui::DragFloat3("Scale", reinterpret_cast<float*>(&scale), 0.1f, -FLT_MAX, FLT_MAX, "%.3f")) {
-							targetTransform.SetScale(scale.x, scale.y, scale.z);
-						}
-						ImGui::TreePop();
-					}
-					ImGui::TreePop();
-				}
-				ImGui::PopID();
-			}
-			ImGui::TreePop();
-		}
-	}
-	// close window
-	ImGui::End();
-
-}
 
 
