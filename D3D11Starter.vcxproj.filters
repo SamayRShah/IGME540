@@ -258,6 +258,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Readme.txt" />
+    <Text Include="Final_ReadMe.txt" />
   </ItemGroup>
 </Project>

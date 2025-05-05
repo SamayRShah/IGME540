@@ -309,7 +309,7 @@
     <None Include="ShaderStructs.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Readme.txt" />
+    <Text Include="Final_ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
